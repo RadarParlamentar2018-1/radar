@@ -47,6 +47,41 @@ MONARQUISTAS = 'Monarquistas'
 
 class ImportadorConvencao:
 
+    _votacao_params = {
+        1: ['Reforma agrária',
+            [models.SIM, models.ABSTENCAO, models.NAO],
+            [models.SIM, models.SIM, models.SIM],
+            [models.NAO, models.NAO, models.NAO]],
+        2: ['Aumento da pensão dos nobres',
+            [models.NAO, models.NAO, models.NAO],
+            [models.NAO, models.NAO, models.NAO],
+            [models.SIM, models.SIM, models.SIM]],
+        3: ['Institui o Dia de Carlos Magno',
+            [models.NAO, models.NAO, models.SIM],
+            [models.NAO, models.NAO, models.NAO],
+            [models.SIM, models.SIM, models.SIM]],
+        4: ['Diminuição de impostos sobre a indústria',
+            [models.SIM, models.SIM, models.SIM],
+            [models.SIM, models.ABSTENCAO, models.NAO],
+            [models.SIM, models.NAO, models.AUSENTE]],
+        5: ['Guilhotinar o Conde Pierre',
+            [models.SIM, models.SIM, models.ABSTENCAO],
+            [models.SIM, models.SIM, models.SIM],
+            [models.NAO, models.NAO, models.NAO]],
+        6: ['Criação de novas escolas',
+            [models.SIM, models.SIM, models.SIM],
+            [models.SIM, models.SIM, models.SIM],
+            [models.AUSENTE, models.SIM, models.SIM]],
+        7: ['Aumento do efetivo militar',
+            [models.SIM, models.SIM, models.ABSTENCAO],
+            [models.SIM, models.SIM, models.SIM],
+            [models.SIM, models.AUSENTE, models.SIM]],
+        8: ['Contratar médicos para a capital',
+            [models.SIM, models.SIM, models.ABSTENCAO],
+            [models.SIM, models.SIM, models.SIM],
+            [models.SIM, models.AUSENTE, models.SIM]],
+    }
+
     def _gera_casa_legislativa(self):
         conv = models.CasaLegislativa()
         conv.nome = 'Convenção Nacional Francesa'
@@ -118,124 +153,18 @@ class ImportadorConvencao:
             voto.votacao = votacao
             voto.save()
 
-    def _gera_votacao1(self):
-
-        numero_proposicao = '1'
-        descricao_proposicao = 'Reforma agrária'
-        prop = self._gera_proposicao(numero_proposicao, descricao_proposicao)
-        votacao = self._gera_votacao(numero_proposicao, descricao_proposicao,
-                                     DATA_NO_PRIMEIRO_SEMESTRE, prop)
-
-        votos_girondinos = [models.SIM, models.ABSTENCAO, models.NAO]
-        self._gera_votos(votacao, GIRONDINOS, votos_girondinos)
-
-        votos_jacobinos = [models.SIM, models.SIM, models.SIM]
-        self._gera_votos(votacao, JACOBINOS, votos_jacobinos)
-
-        votos_monarquistas = [models.NAO, models.NAO, models.NAO]
-        self._gera_votos(votacao, MONARQUISTAS, votos_monarquistas)
-
-    def _gera_votacao2(self):
-
-        numero_proposicao = '2'
-        descricao_proposicao = 'Aumento da pensão dos nobres'
-        prop = self._gera_proposicao(numero_proposicao, descricao_proposicao)
-        votacao = self._gera_votacao(numero_proposicao, descricao_proposicao,
-                                     DATA_NO_PRIMEIRO_SEMESTRE, prop)
-
-        votos_girondinos = [models.NAO, models.NAO, models.NAO]
-        self._gera_votos(votacao, GIRONDINOS, votos_girondinos)
-
-        votos_jacobinos = [models.NAO, models.NAO, models.NAO]
-        self._gera_votos(votacao, JACOBINOS, votos_jacobinos)
-
-        votos_monarquistas = [models.SIM, models.SIM, models.SIM]
-        self._gera_votos(votacao, MONARQUISTAS, votos_monarquistas)
-
-    def _gera_votacao3(self):
-
-        numero_proposicao = '3'
-        descricao_proposicao = 'Institui o Dia de Carlos Magno'
-        prop = self._gera_proposicao(numero_proposicao, descricao_proposicao)
-        votacao = self._gera_votacao(numero_proposicao, descricao_proposicao,
-                                     DATA_NO_PRIMEIRO_SEMESTRE, prop)
-
-        votos_girondinos = [models.NAO, models.NAO, models.SIM]
-        self._gera_votos(votacao, GIRONDINOS, votos_girondinos)
-
-        votos_jacobinos = [models.NAO, models.NAO, models.NAO]
-        self._gera_votos(votacao, JACOBINOS, votos_jacobinos)
-
-        votos_monarquistas = [models.SIM, models.SIM, models.SIM]
-        self._gera_votos(votacao, MONARQUISTAS, votos_monarquistas)
-
-    def _gera_votacao4(self):
-
-        numero_proposicao = '4'
-        descricao_proposicao = 'Diminuição de impostos sobre a indústria'
-        prop = self._gera_proposicao(numero_proposicao, descricao_proposicao)
-        votacao = self._gera_votacao(numero_proposicao, descricao_proposicao,
-                                     DATA_NO_PRIMEIRO_SEMESTRE, prop)
-
-        votos_girondinos = [models.SIM, models.SIM, models.SIM]
-        self._gera_votos(votacao, GIRONDINOS, votos_girondinos)
-
-        votos_jacobinos = [models.SIM, models.ABSTENCAO, models.NAO]
-        self._gera_votos(votacao, JACOBINOS, votos_jacobinos)
-
-        votos_monarquistas = [models.SIM, models.NAO, models.AUSENTE]
-        self._gera_votos(votacao, MONARQUISTAS, votos_monarquistas)
-
-    def _gera_votacao5(self):
-
-        numero_proposicao = '5'
-        descricao_proposicao = 'Guilhotinar o Conde Pierre'
-        prop = self._gera_proposicao(numero_proposicao, descricao_proposicao)
-        votacao = self._gera_votacao(numero_proposicao, descricao_proposicao,
-                                     DATA_NO_SEGUNDO_SEMESTRE, prop)
-
-        votos_girondinos = [models.SIM, models.SIM, models.ABSTENCAO]
-        self._gera_votos(votacao, GIRONDINOS, votos_girondinos)
-
-        votos_jacobinos = [models.SIM, models.SIM, models.SIM]
-        self._gera_votos(votacao, JACOBINOS, votos_jacobinos)
-
-        votos_monarquistas = [models.NAO, models.NAO, models.NAO]
-        self._gera_votos(votacao, MONARQUISTAS, votos_monarquistas)
-
-    def _gera_votacao6(self):
-
-        numero_proposicao = '6'
-        descricao_proposicao = 'Criação de novas escolas'
-        prop = self._gera_proposicao(numero_proposicao, descricao_proposicao)
-        votacao = self._gera_votacao(numero_proposicao, descricao_proposicao,
-                                     DATA_NO_SEGUNDO_SEMESTRE, prop)
-
-        votos_girondinos = [models.SIM, models.SIM, models.SIM]
-        self._gera_votos(votacao, GIRONDINOS, votos_girondinos)
-
-        votos_jacobinos = [models.SIM, models.SIM, models.SIM]
-        self._gera_votos(votacao, JACOBINOS, votos_jacobinos)
-
-        votos_monarquistas = [models.AUSENTE, models.SIM, models.SIM]
-        self._gera_votos(votacao, MONARQUISTAS, votos_monarquistas)
-
-    def _gera_votacao7(self):
-
-        numero_proposicao = '7'
-        descricao_proposicao = 'Aumento do efetivo militar'
-        prop = self._gera_proposicao(numero_proposicao, descricao_proposicao)
-        votacao = self._gera_votacao(numero_proposicao, descricao_proposicao,
-                                     DATA_NO_SEGUNDO_SEMESTRE, prop)
-
-        votos_girondinos = [models.SIM, models.SIM, models.ABSTENCAO]
-        self._gera_votos(votacao, GIRONDINOS, votos_girondinos)
-
-        votos_jacobinos = [models.SIM, models.SIM, models.SIM]
-        self._gera_votos(votacao, JACOBINOS, votos_jacobinos)
-
-        votos_monarquistas = [models.SIM, models.AUSENTE, models.SIM]
-        self._gera_votos(votacao, MONARQUISTAS, votos_monarquistas)
+    def _gera_votacao_geral(self):
+        for i in range(len(self._votacao_params)):
+            list_params = self._votacao_params[i+1]
+            numero_prop = str(i+1)
+            descricao_prop = list_params[0]
+            prop = self._gera_proposicao(numero_prop, descricao_prop)
+            votacao = self._gera_votacao(
+                numero_prop, descricao_prop,
+                DATA_NO_PRIMEIRO_SEMESTRE, prop)
+            self._gera_votos(votacao, GIRONDINOS, list_params[1])
+            self._gera_votos(votacao, JACOBINOS, list_params[2])
+            self._gera_votos(votacao, MONARQUISTAS, list_params[3])
 
     # votação com atributos diferentes para teste
     def _gera_votacao8(self):
@@ -263,35 +192,12 @@ class ImportadorConvencao:
         votos_monarquistas = [models.SIM, models.AUSENTE, models.SIM]
         self._gera_votos(votacao, MONARQUISTAS, votos_monarquistas)
 
-    def _gera_votacao9(self):
-        numero_proposicao = '9'
-        descricao_proposicao = 'Contratar médicos para a capital'
-        prop = self._gera_proposicao(numero_proposicao, descricao_proposicao)
-        votacao = self._gera_votacao(numero_proposicao, descricao_proposicao,
-                                     DATA_VOTACAO_9, prop)
-
-        votos_girondinos = [models.SIM, models.SIM, models.ABSTENCAO]
-        self._gera_votos(votacao, GIRONDINOS, votos_girondinos)
-
-        votos_jacobinos = [models.SIM, models.SIM, models.SIM]
-        self._gera_votos(votacao, JACOBINOS, votos_jacobinos)
-
-        votos_monarquistas = [models.SIM, models.AUSENTE, models.SIM]
-        self._gera_votos(votacao, MONARQUISTAS, votos_monarquistas)
-
     def importar(self):
         self.casa = self._gera_casa_legislativa()
         self._gera_partidos()
         self._gera_parlamentares()
-        self._gera_votacao1()
-        self._gera_votacao2()
-        self._gera_votacao3()
-        self._gera_votacao4()
-        self._gera_votacao5()
-        self._gera_votacao6()
-        self._gera_votacao7()
+        self._gera_votacao_geral()
         self._gera_votacao8()
-        self._gera_votacao9()
         self._gera_proposicao('10', 'Legalizacao da maconha')
 
 
