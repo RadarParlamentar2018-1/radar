@@ -26,6 +26,8 @@ from __future__ import unicode_literals
 from django.utils.dateparse import parse_datetime
 from modelagem import models
 import logging
+import json
+import os
 
 logger = logging.getLogger("radar")
 
@@ -43,44 +45,10 @@ PARLAMENTARES_POR_PARTIDO = 3
 GIRONDINOS = 'Girondinos'
 JACOBINOS = 'Jacobinos'
 MONARQUISTAS = 'Monarquistas'
+ARQUIVO = os.path.dirname(__file__)
 
 
 class ImportadorConvencao:
-
-    _votacao_params = {
-        1: ['Reforma agrária',
-            [models.SIM, models.ABSTENCAO, models.NAO],
-            [models.SIM, models.SIM, models.SIM],
-            [models.NAO, models.NAO, models.NAO]],
-        2: ['Aumento da pensão dos nobres',
-            [models.NAO, models.NAO, models.NAO],
-            [models.NAO, models.NAO, models.NAO],
-            [models.SIM, models.SIM, models.SIM]],
-        3: ['Institui o Dia de Carlos Magno',
-            [models.NAO, models.NAO, models.SIM],
-            [models.NAO, models.NAO, models.NAO],
-            [models.SIM, models.SIM, models.SIM]],
-        4: ['Diminuição de impostos sobre a indústria',
-            [models.SIM, models.SIM, models.SIM],
-            [models.SIM, models.ABSTENCAO, models.NAO],
-            [models.SIM, models.NAO, models.AUSENTE]],
-        5: ['Guilhotinar o Conde Pierre',
-            [models.SIM, models.SIM, models.ABSTENCAO],
-            [models.SIM, models.SIM, models.SIM],
-            [models.NAO, models.NAO, models.NAO]],
-        6: ['Criação de novas escolas',
-            [models.SIM, models.SIM, models.SIM],
-            [models.SIM, models.SIM, models.SIM],
-            [models.AUSENTE, models.SIM, models.SIM]],
-        7: ['Aumento do efetivo militar',
-            [models.SIM, models.SIM, models.ABSTENCAO],
-            [models.SIM, models.SIM, models.SIM],
-            [models.SIM, models.AUSENTE, models.SIM]],
-        8: ['Contratar médicos para a capital',
-            [models.SIM, models.SIM, models.ABSTENCAO],
-            [models.SIM, models.SIM, models.SIM],
-            [models.SIM, models.AUSENTE, models.SIM]],
-    }
 
     def _gera_casa_legislativa(self):
         conv = models.CasaLegislativa()
@@ -124,14 +92,18 @@ class ImportadorConvencao:
                 parlamentar.save()
                 self.parlamentares[partido.nome].append(parlamentar)
 
-    def _gera_proposicao(self, num, descricao):
+    def _gera_proposicao(self, num, descricao, indexacao=None, ementa=None):
         prop = models.Proposicao()
         prop.id_prop = num
         prop.sigla = 'PL'
         prop.numero = num
-        prop.ementa = descricao
         prop.descricao = descricao
         prop.casa_legislativa = self.casa
+        if indexacao is not None and ementa is not None:
+            prop.indexacao = indexacao
+            prop.ementa = ementa
+        else:
+            prop.ementa = descricao
         prop.save()
         return prop
 
@@ -153,51 +125,46 @@ class ImportadorConvencao:
             voto.votacao = votacao
             voto.save()
 
+    def _obtem_dados_json(self):
+        data = None
+        with open(os.path.join(ARQUIVO, 'votacoes.json')) as arquivo:
+            data = json.load(arquivo)
+        if data is None:
+            data = {"votacao_params": {}}
+        return data
+
     def _gera_votacao_geral(self):
-        for i in range(len(self._votacao_params)):
-            list_params = self._votacao_params[i+1]
-            numero_prop = str(i+1)
-            descricao_prop = list_params[0]
-            prop = self._gera_proposicao(numero_prop, descricao_prop)
+        data = self._obtem_dados_json()
+        votacoes_params = data.get("votacoes_params")
+        for index, valor in enumerate(votacoes_params):
+            numero_prop = str(index+1)
+            descricao_prop = valor["descricao"]
+            prop = valor.get("prop")
+            if prop is not None:
+                valor_prop = valor.get("prop")
+                descricao = valor_prop.get("descricao_extra")
+                indexacao = valor_prop.get("indexacao")
+                ementa = valor_prop.get("ementa")
+                prop = self._gera_proposicao(
+                    numero_prop,
+                    descricao,
+                    indexacao,
+                    ementa)
+            else:
+                prop = self._gera_proposicao(numero_prop, descricao_prop)
             votacao = self._gera_votacao(
-                numero_prop, descricao_prop,
+                numero_prop,
+                descricao_prop,
                 DATA_NO_PRIMEIRO_SEMESTRE, prop)
-            self._gera_votos(votacao, GIRONDINOS, list_params[1])
-            self._gera_votos(votacao, JACOBINOS, list_params[2])
-            self._gera_votos(votacao, MONARQUISTAS, list_params[3])
-
-    # votação com atributos diferentes para teste
-    def _gera_votacao8(self):
-
-        numero_proposicao = '8'
-        descricao_proposicao = 'Guerra contra a Inglaterra'
-        prop = models.Proposicao()
-        prop.id_prop = numero_proposicao
-        prop.sigla = 'PL'
-        prop.numero = numero_proposicao
-        prop.ementa = 'o uso proibido de armas químicas'
-        prop.descricao = 'descricao da guerra'
-        prop.casa_legislativa = self.casa
-        prop.indexacao = 'bombas, efeitos, destruições'
-        prop.save()
-        votacao = self._gera_votacao(numero_proposicao, descricao_proposicao,
-                                     DATA_NO_SEGUNDO_SEMESTRE, prop)
-
-        votos_girondinos = [models.NAO, models.NAO, models.NAO]
-        self._gera_votos(votacao, GIRONDINOS, votos_girondinos)
-
-        votos_jacobinos = [models.ABSTENCAO, models.NAO, models.NAO]
-        self._gera_votos(votacao, JACOBINOS, votos_jacobinos)
-
-        votos_monarquistas = [models.SIM, models.AUSENTE, models.SIM]
-        self._gera_votos(votacao, MONARQUISTAS, votos_monarquistas)
+            partidos = valor["partidos"]
+            for partido, votos in partidos.items():
+                self._gera_votos(votacao, partido, votos)
 
     def importar(self):
         self.casa = self._gera_casa_legislativa()
         self._gera_partidos()
         self._gera_parlamentares()
         self._gera_votacao_geral()
-        self._gera_votacao8()
         self._gera_proposicao('10', 'Legalizacao da maconha')
 
 
