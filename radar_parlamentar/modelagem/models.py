@@ -544,6 +544,8 @@ class VotosAgregados:
         self.sim = 0
         self.nao = 0
         self.abstencao = 0
+        self.obstrucao = 0
+        self.ausente = 0
 
     def add(self, voto):
         """Adiciona um voto ao conjunto de votos.
@@ -560,12 +562,12 @@ class VotosAgregados:
         if voto == ABSTENCAO:
             self.abstencao += 1
         if voto == OBSTRUCAO:
-            self.abstencao += 1
-        # if (voto == AUSENTE):
-        #    self.abstencao += 1
+            self.obstrucao += 1
+        if (voto == AUSENTE):
+            self.ausente += 1
 
     def total(self):
-        return self.sim + self.nao + self.abstencao
+        return self.sim + self.nao + self.abstencao + self.obstrucao + self.ausente
 
     def voto_medio(self):
         """Valor real que representa a 'opnião média' dos
@@ -577,7 +579,7 @@ class VotosAgregados:
             return 0
 
     def __str__(self):
-        return '(%s, %s, %s)' % (self.sim, self.nao, self.abstencao)
+        return '(%s, %s, %s, %s, %s)' % (self.sim, self.nao, self.abstencao, self.obstrucao, self.ausente)
 
 
 
