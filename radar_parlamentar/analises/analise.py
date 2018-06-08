@@ -252,6 +252,18 @@ class AnalisadorPeriodo:
                         parlamentar] = numpy.array([0., 0.])
         return self.coordenadas_parlamentares
 
+    def _formata_matriz(self, ids_parlamentares_presentes):
+        """ Inicia a matriz e formata a matriz dos parlamentares.
+
+            Retorna uma lista com os dados centralizados com representantes
+            presentes nas votações.
+        """
+        matriz = self.vetores_votacao
+        # exclui parlamentares ausentes em todas as votações do período
+        matriz = matriz[ids_parlamentares_presentes, :]
+        matriz = matriz - matriz.mean(axis=0)  # centraliza dados
+        return matriz
+
     def _pca_parlamentares(self):
         """Roda a análise de componentes principais por parlamentares.
 
@@ -263,10 +275,7 @@ class AnalisadorPeriodo:
                 self._inicializa_vetores()
             ids_parlamentares_presentes = \
                 self._listar_indices_de_parlamentares_presentes()
-            matriz = self.vetores_votacao
-            # exclui parlamentares ausentes em todas as votações do período
-            matriz = matriz[ids_parlamentares_presentes, :]
-            matriz = matriz - matriz.mean(axis=0)  # centraliza dados
+            matriz = self._formata_matriz(ids_parlamentares_presentes)
             self.pca = pca.PCA(matriz, fraction=1)  # faz o pca
             self._preenche_pca_de_parlamentares_nulos(
                 ids_parlamentares_presentes)
