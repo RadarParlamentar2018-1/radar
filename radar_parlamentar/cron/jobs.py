@@ -32,12 +32,13 @@ class ImportadorJob(CronJobBase):
     RUN_AT_TIMES = ['02:00']
     schedule = Schedule(run_at_times=RUN_AT_TIMES)
     code = 'job.ImportadorJob'
+    TUESDAY = 1
 
     def do(self):
         logger.info('ImportadorJob foi chamado.')
         weekday = date.today().weekday()
-        # segunda é o zero
-        if weekday == 1:
+        
+        if weekday == self.TUESDAY:
             logger.info('ImportadorJob invocando importações.')
             importar_assincronamente.delay('cmsp')
             importar_assincronamente.delay('cdep')
@@ -76,12 +77,13 @@ class DbDumperJob(CronJobBase):
     RUN_AT_TIMES = ['04:00']
     schedule = Schedule(run_at_times=RUN_AT_TIMES)
     code = 'job.DbDumperJob'
+    MONDAY = 0
 
     def do(self):
         logger.info('DbDumperJob foi chamado.')
         weekday = date.today().weekday()
-        # segunda é o zero
-        if weekday == 0:
+        
+        if weekday == self.MONDAY:
             logger.info('DbDumperJob fazendo dump do banco.')
         else:
             logger.info('Hoje não é o dia. DbDumperJob só trabalha às segundas.')
