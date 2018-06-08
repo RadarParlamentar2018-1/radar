@@ -57,27 +57,37 @@ class ExportadorCSV:
         self.retrieve_votacoes()
         self.transform_data()
         self.write_csv()
+    
+    def _ini_is_none(self, casa):
+        if self.fim is None:
+            self.votacoes = models.Votacao.objects.filter(
+                proposicao__casa_legislativa=casa).order_by('data')
+        else:
+            self.votacoes = models.Votacao.objects.filter(
+                proposicao__casa_legislativa=casa
+            ).filter(data__lte=self.fim).order_by('data')
+    
+    def _ini_is_not_none(self, casa):
+        if self.fim is None:
+            self.votacoes = models.Votacao.objects.filter(
+                proposicao__casa_legislativa=casa
+            ).filter(data__gte=self.ini).order_by('data')
+        else:
+            self.votacoes = models.Votacao.objects.filter(
+                proposicao__casa_legislativa=casa
+            ).filter(data__gte=self.ini, data__lte=self.fim).order_by('data')
+         
 
     def retrieve_votacoes(self):
         try:
             casa = models.CasaLegislativa.objects.get(nome_curto='cdep')
         except:
             casa = None
-        if self.ini is None and self.fim is None:
-            self.votacoes = models.Votacao.objects.filter(
-                proposicao__casa_legislativa=casa).order_by('data')
-        if self.ini is None and self.fim is not None:
-            self.votacoes = models.Votacao.objects.filter(
-                proposicao__casa_legislativa=casa
-            ).filter(data__lte=self.fim).order_by('data')
-        if self.ini is not None and self.fim is None:
-            self.votacoes = models.Votacao.objects.filter(
-                proposicao__casa_legislativa=casa
-            ).filter(data__gte=self.ini).order_by('data')
-        if self.ini is not None and self.fim is not None:
-            self.votacoes = models.Votacao.objects.filter(
-                proposicao__casa_legislativa=casa
-            ).filter(data__gte=self.ini, data__lte=self.fim).order_by('data')
+        if self.ini is None:
+            self._ini_is_none(casa)
+        else:
+            self._ini_is_not_none(casa)
+
 
     def transform_data(self):
         self.csv_rows.append(LABELS)
