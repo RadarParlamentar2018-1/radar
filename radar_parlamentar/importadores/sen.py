@@ -44,6 +44,10 @@ DATA_FOLDER = os.path.join(MODULE_DIR, 'dados/senado')
 VOTACOES_FOLDER = os.path.join(DATA_FOLDER, 'votacoes')
 
 NOME_CURTO = 'sen'
+NOME_EXTENSO = 'Senado'
+PARTIDO_PT = 13
+SEM_PARTIDO = 0
+STATUS_SUCESSO = 200
 
 XML_FILE = 'dados/chefe_executivo/chefe_executivo_congresso.xml.bz2'
 
@@ -59,7 +63,7 @@ class CasaLegislativaGerador:
 
         if not models.CasaLegislativa.objects.filter(nome_curto=NOME_CURTO):
             sen = models.CasaLegislativa()
-            sen.nome = 'Senado'
+            sen.nome = NOME_EXTENSO
             sen.nome_curto = NOME_CURTO
             sen.esfera = models.FEDERAL
             sen.save()
@@ -339,7 +343,7 @@ class ImportadorVotacoesSenado:
         for xml_url in list_xml:
             try:
                 response = requests.get(xml_url)
-                if response.status_code == 200:
+                if response.status_code == STATUS_SUCESSO:
                     xml_text = response.text
                     logger.debug('Importando %s' % xml_url)
                     self._save_votacoes_in_db(xml_text)
@@ -359,11 +363,11 @@ class PosImportacao:
         try:
             suplicy_sem_partido = models.Parlamentar.objects.get(
                 nome='Eduardo Suplicy',
-                partido__numero=0,
+                partido__numero=SEM_PARTIDO,
                 casa_legislativa__nome_curto='sen')
             suplicy_do_pt = models.Parlamentar.objects.get(
                 nome='Eduardo Suplicy',
-                partido__numero=13,
+                partido__numero=PARTIDO_PT,
                 casa_legislativa__nome_curto='sen')
             votos = models.Voto.objects.filter(parlamentar=suplicy_sem_partido)
             for v in votos:
