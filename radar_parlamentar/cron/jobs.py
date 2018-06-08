@@ -86,22 +86,6 @@ class DbDumperJob(CronJobBase):
         else:
             logger.info('Hoje não é o dia. DbDumperJob só trabalha às segundas.')
 
-class DbDumperJob(CronJobBase):
-    """Executado segunda às 4h"""
-
-    RUN_AT_TIMES = ['04:00']
-    schedule = Schedule(run_at_times=RUN_AT_TIMES)
-    code = 'job.DbDumperJob'
-
-    def do(self):
-        logger.info('DbDumperJob foi chamado.')
-        weekday = date.today().weekday()
-        # segunda é o zero
-        if weekday == 0:
-            logger.info('DbDumperJob fazendo dump do banco.')
-        else:
-            logger.info('Hoje não é o dia. DbDumperJob só trabalha às segundas.')
-
 class DbDumper():
 
     # Roteiro:
