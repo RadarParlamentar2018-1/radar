@@ -145,6 +145,16 @@ class ImportadorVotacoesSenado:
             partido = models.Partido.get_sem_partido()
         return partido
 
+    def _create_parlamentar(self, parlamentar_list_info):
+            senador = models.Parlamentar()
+            senador.id_parlamentar = parlamentar_list_info[0]
+            senador.nome = parlamentar_list_info[1]
+            senador.genero = parlamentar_list_info[2]
+            senador.casa_legislativa = self.senado
+            senador.partido = parlamentar_list_info[3]
+            senador.localidade = parlamentar_list_info[4]
+            senador.save()
+
     def _find_parlamentar(self, voto_parlamentar_tree):
         nome_senador = voto_parlamentar_tree.find('NomeParlamentar').text
         nome_partido = voto_parlamentar_tree.find('SiglaPartido').text
@@ -156,17 +166,24 @@ class ImportadorVotacoesSenado:
         else:
             codigo = voto_parlamentar_tree.find('CodigoParlamentar').text
             sexo = voto_parlamentar_tree.find('SexoParlamentar').text
-            senador = models.Parlamentar()
-            senador.id_parlamentar = codigo
-            senador.nome = nome_senador
-            senador.genero = sexo
-            senador.casa_legislativa = self.senado
-            senador.partido = partido
-            senador.localidade = localidade
-            senador.save()
+            parlamentar_infos = [
+                codigo, nome_senador,
+                sexo, partido, localidade]
+            senador = self._create_parlamentar(parlamentar_infos)
             self.parlamentares[key] = senador
             self.progresso()
         return senador
+
+    def _create_voto(self, senador, opcao_voto, votacao):
+        """Cria voto e salva no BD
+           Retorna novo voto criado
+        """
+        voto = models.Voto()
+        voto.parlamentar = senador
+        voto.votacao = votacao
+        voto.opcao = opcao_voto
+        voto.save()
+        return voto
 
     def _votos_from_tree(self, votos_tree, votacao):
         """Faz o parse dos votos, salva no BD e devolve lista de votos
@@ -175,12 +192,9 @@ class ImportadorVotacoesSenado:
         votos = []
         for voto_parlamentar_tree in votos_tree:
             senador = self._find_parlamentar(voto_parlamentar_tree)
-            voto = models.Voto()
-            voto.parlamentar = senador
-            voto.votacao = votacao
-            voto.opcao = self._voto_senado_to_model(
+            opcao_voto = self._voto_senado_to_model(
                 voto_parlamentar_tree.find('Voto').text)
-            voto.save()
+            voto = self._create_voto(senador, opcao_voto, votacao)
             votos.append(voto)
         return votos
 
@@ -191,18 +205,25 @@ class ImportadorVotacoesSenado:
         ano = votacao_tree.find('AnoMateria').text
         return '%s %s/%s' % (sigla, numero, ano)
 
+    def _create_prop(self, votacao_tree):
+        """Cria proposicao e salva no BD
+           Retorna nova proposicao criada
+        """
+        prop = models.Proposicao()
+        prop.sigla = votacao_tree.find('SiglaMateria').text
+        prop.numero = votacao_tree.find('NumeroMateria').text
+        prop.ano = votacao_tree.find('AnoMateria').text
+        prop.casa_legislativa = self.senado
+        prop.save()
+        return prop
+
     def _proposicao_from_tree(self, votacao_tree):
 
         prop_nome = self._nome_prop_from_tree(votacao_tree)
         if prop_nome in self.proposicoes:
             prop = self.proposicoes[prop_nome]
         else:
-            prop = models.Proposicao()
-            prop.sigla = votacao_tree.find('SiglaMateria').text
-            prop.numero = votacao_tree.find('NumeroMateria').text
-            prop.ano = votacao_tree.find('AnoMateria').text
-            prop.casa_legislativa = self.senado
-            prop.save()
+            prop = self._create_prop(votacao_tree)
             self.proposicoes[prop_nome] = prop
         return prop
 
@@ -288,7 +309,7 @@ class ImportadorVotacoesSenado:
 
         if self._save_votacao(votacao_tree, votacao):
             return True, votacao
-
+    
     def _save_votacoes_in_db(self, xml_text):
         tree = etree.fromstring(xml_text)
 
