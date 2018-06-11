@@ -154,6 +154,7 @@ class ImportadorVotacoesSenado:
             senador.partido = parlamentar_list_info[3]
             senador.localidade = parlamentar_list_info[4]
             senador.save()
+            return senador
 
     def _find_parlamentar(self, voto_parlamentar_tree):
         nome_senador = voto_parlamentar_tree.find('NomeParlamentar').text
@@ -309,7 +310,7 @@ class ImportadorVotacoesSenado:
 
         if self._save_votacao(votacao_tree, votacao):
             return True, votacao
-    
+
     def _save_votacoes_in_db(self, xml_text):
         tree = etree.fromstring(xml_text)
 

@@ -123,13 +123,9 @@ class JsonAnaliseGenerator:
     def _dict_cp(self, ap, idx):
         """ap -- AnalisePeriodo; idx == 0 para cp1 and idx == 1 para cp2"""
         dict_cp = {}
+        theta = self._set_theta(ap)
         try:
-            theta = round(ap.theta, 0) % 180 + 90 * idx
-        except AttributeError:
-            theta = 0
-        try:
-            var_explicada = round(
-                ap.pca.eigen[idx] / ap.pca.eigen.sum() * 100, 1)
+            var_explicada = self.calculate_var_explicada(ap, idx)
             if ap.pca.Vt is not None:
                 composicao = [round(el, 2)
                               for el in 100 * ap.pca.Vt[idx, :] ** 2]
@@ -142,6 +138,18 @@ class JsonAnaliseGenerator:
         # TODO estas contas complexas já deveriam ter sido feitas pela análise
         # o JsonGenerator não deveria entender dessas cosias.
         return dict_cp
+
+    @classmethod
+    def calculate_var_explicada(self, ap, idx):
+        return round(ap.pca.eigen[idx] / ap.pca.eigen.sum() * 100, 1)
+
+    @classmethod
+    def _set_theta(self, ap):
+        try:
+            theta = round(ap.theta, 0) % 180 + 90 * idx
+        except AttributeError:
+            theta = 0
+        return theta
 
     @classmethod
     def _list_votacoes_do_periodo(self, ap):
@@ -189,38 +197,53 @@ class JsonAnaliseGenerator:
         dict_partido["r"] = []
         dict_partido["x"] = []
         dict_partido["y"] = []
+        self._fill_dict_partido(partido, dict_partido)
+
+        return dict_partido
+
+    def _fill_dict_partido(self, partido, dict_partido):
         for ap in self.analise_temporal.analises_periodo:
             label_periodo = str(ap.periodo)
             cache_coords_key = label_periodo
             coordenadas = self.partidosScaler.scale(ap.coordenadas_partidos,
                                                     cache_coords_key)
-            try:
-                x = round(coordenadas[partido][0], 2)
-                y = round(coordenadas[partido][1], 2)
-                self.max_partido_radius_calculator.add_point(x, y)
-                if not isnan(x):
-                    dict_partido["x"].append(round(x, 2))
-                    dict_partido["y"].append(round(y, 2))
-                else:
-                    dict_partido["x"].append(0.)
-                    dict_partido["y"].append(0.)
-            except KeyError as error:
-                logger.error("KeyError: %s", error)
-                dict_partido["x"].append(0.)
-                dict_partido["y"].append(0.)
-            tamanho = ap.tamanhos_partidos[partido]
-            dict_partido["t"].append(tamanho)
-            raio = self.raio_partido_calculator.get_raio(
-                partido, label_periodo)
-            dict_partido["r"].append(raio)
+            self._fill_dict_partido_coordinates(partido, dict_partido, coordenadas)
+            self._append_dimensions(ap, label_periodo, partido, dict_partido)
+
+        self._append_parlamentares(partido, dict_partido)
+
+    def _append_dimensions(self, ap, label_periodo, partido, dict_partido):
+        tamanho = ap.tamanhos_partidos[partido]
+        dict_partido["t"].append(tamanho)
+        raio = self.raio_partido_calculator.get_raio(
+            partido, label_periodo)
+        dict_partido["r"].append(raio)
+
+    def _append_parlamentares(self, partido, dict_partido):
         dict_partido["parlamentares"] = []
         parlamentares = \
             self.analise_temporal.casa_legislativa.parlamentares().filter(
                 partido=partido).select_related('partido')
+
         for parlamentar in parlamentares:
             dict_partido["parlamentares"].append(
                 self._dict_parlamentar(parlamentar))
-        return dict_partido
+
+    def _fill_dict_partido_coordinates(self, partido, dict_partido, coordenadas):
+        try:
+            x = round(coordenadas[partido][0], 2)
+            y = round(coordenadas[partido][1], 2)
+            self.max_partido_radius_calculator.add_point(x, y)
+            if not isnan(x):
+                dict_partido["x"].append(round(x, 2))
+                dict_partido["y"].append(round(y, 2))
+            else:
+                dict_partido["x"].append(0.)
+                dict_partido["y"].append(0.)
+        except KeyError as error:
+            logger.error("KeyError: %s", error)
+            dict_partido["x"].append(0.)
+            dict_partido["y"].append(0.)
 
     def _dict_parlamentar(self, parlamentar):
         leg_id = parlamentar.id
