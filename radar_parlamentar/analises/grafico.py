@@ -295,11 +295,18 @@ class GraphScaler:
                 y = coord[1]
             except IndexError:
                 y = 0
-            if x < -1 or x > 1 or y < -1 or y > 1:
+            if self._is_invalid_coordinates(x, y):
                 raise ValueError("Value should be in [-1,1]")
             scaled[key] = [x * 100, y * 100]
         return scaled
 
+    @classmethod
+    def _is_invalid_coordinates(self, x, y):
+        return self._is_invalid_value(x) or self._is_invalid_value(y)
+
+    @classmethod
+    def _is_invalid_value(self, value):
+        return value < -1 or value > 1
 
 class RaioPartidoCalculator():
 
@@ -324,7 +331,7 @@ class RaioPartidoCalculator():
         for tamanhos_partidos in list(
                 self.tamanhos_dos_partidos_por_periodo.values()):
             soma_dos_tamanhos_dos_partidos = sum(tamanhos_partidos.values())
-            if soma_dos_tamanhos_dos_partidos > maior_soma:
+            if self._is_somapartidos_maior(soma_dos_tamanhos_dos_partidos, maior_soma):
                 maior_soma = soma_dos_tamanhos_dos_partidos
         self.area_total = maior_soma
 
@@ -333,3 +340,6 @@ class RaioPartidoCalculator():
         tamanho = tamanhos_partidos[partido]
         raio = sqrt(tamanho * self.escala)
         return round(raio, 1)
+
+    def _is_somapartidos_maior(self, soma_dos_tamanhos_dos_partidos, maior_soma):
+        return soma_dos_tamanhos_dos_partidos > maior_soma
