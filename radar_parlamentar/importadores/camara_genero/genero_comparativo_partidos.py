@@ -5,16 +5,16 @@ from xml.dom.minidom import parseString
 import json
 
 
-arqs = listdir("bios")
+arquivos = listdir("bios")
 
 generos = {}
 historia = {}
 lista_partidos = []
 
-cont = 0
-for arq in arqs:
-    if arq[0] != ".":
-        ponteiro = open("bios/" + arq)
+contador = 0
+for arquivo in arquivos:
+    if arquivo[0] != ".":
+        ponteiro = open("bios/" + arquivo)
         data = ponteiro.read()
         dom = parseString(data)
         records = dom.getElementsByTagName('DATA_RECORD')
@@ -24,7 +24,7 @@ for arq in arqs:
                 'MANDATOSCD')[0].firstChild.data
             if legis.find("Deputada") != -1:
                 genero = "F"
-                cont += 1
+                contador += 1
             else:
                 genero = "M"
             nome = record.getElementsByTagName('TXTNOME')[0].firstChild.data
@@ -75,9 +75,9 @@ for arq in arqs:
                 nums[genero] = nums.get(genero, 0) + 1
 
 
-print(cont)
+print(contador)
 
 print((list(historia.keys())))
 
-arq = open("genero_comparativo_partidos.json", "w")
-json.dump(historia, arq)
+arquivo = open("genero_comparativo_partidos.json", "w")
+json.dump(historia, arquivo)
