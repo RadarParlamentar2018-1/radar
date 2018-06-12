@@ -518,7 +518,10 @@ class Rotacionador:
             return 0
         else:
             return x
-
+    
+    def _verifica_epsilon_denominador(self, epsilon, denominador):
+        return denominador < epsilon and denominador > -epsilon
+    
     def espelha_ou_roda(self, por_partido=False, so_espelha=True):
         """Retorna nova AnalisePeriodo com coordenadas rotacionadas
         se por_partido = True:
@@ -553,7 +556,7 @@ class Rotacionador:
                 denominador += self._retornar_zero_se_nan(
                     tamanho * meu_polar[0] * alheio_polar[0] * numpy.cos(
                         alheio_polar[1]))
-            if denominador < epsilon and denominador > -epsilon:
+            if self._verifica_epsilon_denominador(epsilon, denominador):
                 angulo_teta1 = 90
                 angulo_teta2 = 270
             else:
