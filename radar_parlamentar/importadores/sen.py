@@ -146,15 +146,15 @@ class ImportadorVotacoesSenado:
         return partido
 
     def _create_parlamentar(self, parlamentar_list_info):
-            senador = models.Parlamentar()
-            senador.id_parlamentar = parlamentar_list_info[0]
-            senador.nome = parlamentar_list_info[1]
-            senador.genero = parlamentar_list_info[2]
-            senador.casa_legislativa = self.senado
-            senador.partido = parlamentar_list_info[3]
-            senador.localidade = parlamentar_list_info[4]
-            senador.save()
-            return senador
+        senador = models.Parlamentar()
+        senador.id_parlamentar = parlamentar_list_info[0]
+        senador.nome = parlamentar_list_info[1]
+        senador.genero = parlamentar_list_info[2]
+        senador.casa_legislativa = self.senado
+        senador.partido = parlamentar_list_info[3]
+        senador.localidade = parlamentar_list_info[4]
+        senador.save()
+        return senador
 
     def _find_parlamentar(self, voto_parlamentar_tree):
         nome_senador = voto_parlamentar_tree.find('NomeParlamentar').text
@@ -311,6 +311,30 @@ class ImportadorVotacoesSenado:
         if self._save_votacao(votacao_tree, votacao):
             return True, votacao
 
+    def _check_success_state_and_votacao(self, sucess_status, votacao, votacoes):
+        if sucess_status is True and votacao is not None:
+            votacoes.append(votacao)
+    
+    def _append_votacao_if_code_exists_in_model(self, votacao_tree):
+        votacoes = []
+        # caso o codigo já exista na model
+        _, votacoes_query = self._code_exists_in_votacao_in_model(
+            votacao_tree)
+        if votacoes_query:
+            votacao = votacoes_query[0]
+            votacoes.append(votacao)
+        else:
+            sucess_status = self._add_votacao_to_model(votacao_tree)
+            votacao = sucess_status
+            self._check_success_state_and_votacao(sucess_status, votacao, votacoes)
+        return votacoes
+    
+    def _check_is_not_votacao_or_secreta(self, votacao_tree, votacao_secreta):
+        votacoes = []
+        if votacao_tree.tag == 'Votacao' and votacao_secreta == 'N':
+            votacoes = self._append_votacao_if_code_exists_in_model(votacao_tree)
+        return votacoes
+
     def _save_votacoes_in_db(self, xml_text):
         tree = etree.fromstring(xml_text)
 
@@ -323,20 +347,7 @@ class ImportadorVotacoesSenado:
             return votacoes
         for votacao_tree in votacoes_tree:
             votacao_secreta = votacao_tree.find('Secreta').text
-            ''' caso nao seja uma votação ou seja uma
-            votação secreta, a função é encerrada'''
-            if votacao_tree.tag == 'Votacao' and votacao_secreta == 'N':
-                # caso o codigo já exista na model
-                _, votacoes_query = self._code_exists_in_votacao_in_model(
-                    votacao_tree)
-                if votacoes_query:
-                    votacao = votacoes_query[0]
-                    votacoes.append(votacao)
-                else:
-                    sucess_status = self._add_votacao_to_model(votacao_tree)
-                    votacao = sucess_status
-                    if sucess_status is True and votacao is not None:
-                        votacoes.append(votacao)
+            votacoes = self._check_is_not_votacao_or_secreta(votacao_tree, votacao_secreta)
 
         return votacoes
 
