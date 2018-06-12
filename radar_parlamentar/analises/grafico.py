@@ -246,14 +246,12 @@ class JsonAnaliseGenerator:
             dict_partido["y"].append(0.)
 
     def _dict_parlamentar(self, parlamentar):
-        leg_id = parlamentar.id
-        nome = parlamentar.nome
-        localidade = parlamentar.localidade
-        dict_parlamentar = {"nome": nome,
-                            "id": leg_id,
-                            "localidade": localidade}
-        dict_parlamentar["x"] = []
-        dict_parlamentar["y"] = []
+        dict_parlamentar = self._init_dict_parlamentar(parlamentar)
+        _adicionar_coordenadas(dict_parlamentar)
+
+        return dict_parlamentar
+
+    def _adicionar_coordenadas(self, dict_parlamentar):
         for ap in self.analise_temporal.analises_periodo:
             cache_coords_key = str(ap.periodo)
             coordenadas = self.parlamentaresScaler.scale(
@@ -273,6 +271,18 @@ class JsonAnaliseGenerator:
             else:
                 dict_parlamentar["x"].append(None)
                 dict_parlamentar["y"].append(None)
+
+
+    def _init_dict_parlamentar(self, parlamentar):
+        leg_id = parlamentar.id
+        nome = parlamentar.nome
+        localidade = parlamentar.localidade
+        dict_parlamentar = {"nome": nome,
+                            "id": leg_id,
+                            "localidade": localidade}
+        dict_parlamentar["x"] = []
+        dict_parlamentar["y"] = []
+
         return dict_parlamentar
 
 
