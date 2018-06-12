@@ -421,10 +421,19 @@ class ImportadorCamara:
             votacao.data = data
             votacao.save()
             self.votacoes[key] = votacao
-            if votacao_xml.find('votos') is not None:
-                for voto_xml in votacao_xml.find('votos'):
-                    self._voto_from_xml(voto_xml, votacao)
+
+            self._is_votos_none(votacao_xml, votacao)
+
             votacao.save()
+
+    def _is_votos_none(self, votacao_xml, votacao):
+        if votacao_xml.find('votos') is not None:
+            self._save_votos_from_xml(votacao_xml, votacao)
+
+    def _save_votos_from_xml(self, votacao_xml, votacao):
+        for voto_xml in votacao_xml.find('votos'):
+            self._voto_from_xml(voto_xml, votacao)
+
 
     def _voto_from_xml(self, voto_xml, votacao):
         """voto_xml -- XML representando voto (objeto etree)
