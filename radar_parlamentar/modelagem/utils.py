@@ -154,11 +154,7 @@ class PeriodosRetriever:
             ano_inicial, mes_inicial, dia_inicial)
         return inicio_primeiro_periodo
 
-    def _data_inicio_prox_periodo(self, data_inicio_periodo):
-        # TODO tb extrair e fazer testes
-        # dia
-        dia_inicial = 1
-        # mês
+    def _definir_mes_inicial(self, data_inicio_periodo):
         if self.periodicidade == MES:
             mes_inicial = data_inicio_periodo.month + 1
             if mes_inicial == 13:
@@ -170,7 +166,11 @@ class PeriodosRetriever:
                 mes_inicial = 7
             elif data_inicio_periodo.month == 7:
                 mes_inicial = 1
-        # ano
+
+        return mes_inicial
+
+    def _definir_ano_inicial(self, data_inicio_periodo):
+
         if self.periodicidade == MES:
             if data_inicio_periodo.month < 12:
                 ano_inicial = data_inicio_periodo.year
@@ -187,8 +187,19 @@ class PeriodosRetriever:
             ano_inicial = data_inicio_periodo.year + 2
         elif self.periodicidade == QUADRIENIO:
             ano_inicial = data_inicio_periodo.year + 4
+
+        return ano_inicial
+
+    def _data_inicio_prox_periodo(self, data_inicio_periodo):
+        # TODO Fazer testes
+
+        dia_inicial = 1
+        mes_inicial = self._definir_mes_inicial(data_inicio_periodo)
+        ano_inicial = self._definir_ano_inicial(data_inicio_periodo)
+
         inicio_prox_periodo = datetime.date(
-            ano_inicial, mes_inicial, dia_inicial)
+            ano_inicial, mes_inicial, dia_inicial
+        )
         return inicio_prox_periodo
 
 
