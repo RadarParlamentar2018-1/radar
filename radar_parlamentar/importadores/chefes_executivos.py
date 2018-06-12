@@ -32,23 +32,21 @@ class ImportadorChefesExecutivos:
     def presidente_from_tree(self, presidentes_tree):
         for presidente in presidentes_tree.getchildren():
             if presidente.tag == self.tag_titulo:
-                nome = presidente.get('Nome')
-                partido = presidente.get('Partido')
-                ano_inicio = presidente.get('AnoInicio')
-                ano_fim = presidente.get('AnoFinal')
-                genero = presidente.get('Genero')
-                self.criar_chefe_executivo(
-                    nome, partido, int(ano_inicio), int(ano_fim), genero)
+                dado_presidente = {}
+                dado_presidente['nome'] = presidente.get('Nome')
+                dado_presidente['sigla_partido'] = presidente.get('Partido')
+                dado_presidente['ano_inicio'] = int(presidente.get('AnoInicio'))
+                dado_presidente['ano_fim'] = int(presidente.get('AnoFinal'))
+                dado_presidente['genero'] = presidente.get('Genero')
+                self.criar_chefe_executivo(dado_presidente)
 
-    def criar_chefe_executivo(self, nome,
-                              sigla_partido, ano_inicio,
-                              ano_fim, genero):
+    def criar_chefe_executivo(self, dado_presidente):
         partido = models.Partido()
-        partido = partido.from_nome(sigla_partido)
+        partido = partido.from_nome(dado_presidente['sigla_partido'])
 
-        chefe = models.ChefeExecutivo(nome=nome, partido=partido,
-                                      mandato_ano_inicio=ano_inicio,
-                                      mandato_ano_fim=ano_fim, genero=genero)
+        chefe = models.ChefeExecutivo(nome=dado_presidente['nome'], partido=partido,
+                                      mandato_ano_inicio=dado_presidente['ano_inicio'],
+                                      mandato_ano_fim=dado_presidente['ano_fim'], genero=dado_presidente['genero'])
 
         self.salvar_chefe_executivo(chefe)
 
