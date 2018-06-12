@@ -27,12 +27,20 @@ class Genero:
     def agrupa_palavras(self, genero, id_casa_legislativa):
         for parlamentar in Parlamentar.objects.filter(
                 genero=genero, casa_legislativa_id=id_casa_legislativa):
-            for proposicao in Proposicao.objects.filter(
-                    autor_principal=parlamentar.nome):
-                for palavra in proposicao.indexacao.split(','):
-                    if len(palavra) != 0:
-                        self.palavras.append(palavra.strip().lower())
+                self._append_proposicoes_parlamentar(parlamentar)
+
         return self.define_chaves_dicionario(self.palavras)
+
+    def _append_proposicoes_parlamentar(self, parlamentar):
+        for proposicao in Proposicao.objects.filter(
+                autor_principal=parlamentar.nome):
+                self._append_palavras_proposicao(proposicao)
+
+    def _append_palavras_proposicao(self, proposicao):
+        for palavra in proposicao.indexacao.split(','):
+            if len(palavra) != 0:
+                self.palavras.append(palavra.strip().lower())
+
 
     def define_chaves_dicionario(self, palavras):
         for palavra in palavras:
@@ -59,10 +67,13 @@ class Genero:
         casas_legislativas = []
 
         for casa in CasaLegislativa.objects.all():
-            for parlamentar in Parlamentar.objects.filter(
-                    casa_legislativa_id=casa.id):
-                if parlamentar.genero != "":
-                    casas_legislativas.append(casa)
-                    break
+            append_parlamentar_casa(casa, casas_legislativas)
 
         return casas_legislativas
+
+    def append_parlamentar_casa(casa, casas_legislativas):
+        for parlamentar in Parlamentar.objects.filter(
+                casa_legislativa_id=casa.id):
+            if parlamentar.genero != "":
+                casas_legislativas.append(casa)
+                break
