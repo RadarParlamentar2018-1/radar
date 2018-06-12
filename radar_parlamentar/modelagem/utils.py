@@ -81,6 +81,13 @@ class PeriodosRetriever:
             WARNING: Brazil dependent code!
     """
 
+    DIA_INICIAL = 1
+    UMA_UNIDADE = 1
+    MENOR_MES_POSSIVEL = 1
+    MENOR_MES_INVALIDO = 13
+    MAIOR_MES_POSSIVEL = 12
+    PRIMEIRO_MES_SEGUNDO_SEMESTRE = 7
+
     def __init__(self, casa_legislativa, periodicidade,
                  data_da_primeira_votacao=None, data_da_ultima_votacao=None,
                  numero_minimo_de_votacoes=1):
@@ -126,79 +133,79 @@ class PeriodosRetriever:
 
     def _inicio_primeiro_periodo(self):
         # TODO extrair e fazer teste de unidade só pra esse método
-        # dia
-        dia_inicial = 1
         # mês
         if self.periodicidade == MES:
             mes_inicial = self.data_da_primeira_votacao.month
         elif self.periodicidade in [ANO, BIENIO, QUADRIENIO]:
-            mes_inicial = 1
+            mes_inicial = self.MENOR_MES_POSSIVEL
         elif self.periodicidade == SEMESTRE:
             primeiro_de_julho = datetime.date(
-                self.data_da_primeira_votacao.year, 7, 1)
+                self.data_da_primeira_votacao.year,
+                self.PRIMEIRO_MES_SEGUNDO_SEMESTRE,
+                self.DIA_INICIAL)
             if (self.data_da_primeira_votacao < primeiro_de_julho):
-                mes_inicial = 1
+                mes_inicial = self.MENOR_MES_POSSIVEL
             else:
-                mes_inicial = 7
+                mes_inicial = self.PRIMEIRO_MES_SEGUNDO_SEMESTRE
         # ano
         mandatos_lists = MandatoLists()
         esfera = self.casa_legislativa.esfera
         mandatos = mandatos_lists.get_mandatos(
             esfera, self.data_da_primeira_votacao, self.data_da_ultima_votacao)
-        i = 0
-        while i < len(mandatos) and \
-                mandatos[i] < self.data_da_primeira_votacao:
-            ano_inicial = mandatos[i].year
-            i += 1
+        indice = 0
+        while indice < len(mandatos) and \
+                mandatos[indice] < self.data_da_primeira_votacao:
+            ano_inicial = mandatos[indice].year
+            indice += 1
         inicio_primeiro_periodo = datetime.date(
-            ano_inicial, mes_inicial, dia_inicial)
+            ano_inicial, mes_inicial, self.DIA_INICIAL)
         return inicio_primeiro_periodo
 
     def _definir_mes_inicial(self, data_inicio_periodo):
         if self.periodicidade == MES:
-            mes_inicial = data_inicio_periodo.month + 1
-            if mes_inicial == 13:
-                mes_inicial = 1
+            mes_inicial = data_inicio_periodo.month + self.UMA_UNIDADE
+            if mes_inicial == self.MENOR_MES_INVALIDO:
+                mes_inicial = self.MENOR_MES_POSSIVEL
         elif self.periodicidade in [ANO, BIENIO, QUADRIENIO]:
-            mes_inicial = 1
+            mes_inicial = self.MENOR_MES_POSSIVEL
         elif self.periodicidade == SEMESTRE:
-            if data_inicio_periodo.month == 1:
-                mes_inicial = 7
-            elif data_inicio_periodo.month == 7:
-                mes_inicial = 1
+            if data_inicio_periodo.month == self.MENOR_MES_POSSIVEL:
+                mes_inicial = self.PRIMEIRO_MES_SEGUNDO_SEMESTRE
+            elif data_inicio_periodo.month == \
+                    self.PRIMEIRO_MES_SEGUNDO_SEMESTRE:
+                mes_inicial = self.MENOR_MES_POSSIVEL
 
         return mes_inicial
 
     def _definir_ano_inicial(self, data_inicio_periodo):
 
         if self.periodicidade == MES:
-            if data_inicio_periodo.month < 12:
+            if data_inicio_periodo.month < self.MAIOR_MES_POSSIVEL:
                 ano_inicial = data_inicio_periodo.year
             else:
-                ano_inicial = data_inicio_periodo.year + 1
+                ano_inicial = data_inicio_periodo.year + self.UMA_UNIDADE
         elif self.periodicidade == SEMESTRE:
-            if data_inicio_periodo.month < 7:
+            if data_inicio_periodo.month < self.PRIMEIRO_MES_SEGUNDO_SEMESTRE:
                 ano_inicial = data_inicio_periodo.year
             else:
-                ano_inicial = data_inicio_periodo.year + 1
+                ano_inicial = data_inicio_periodo.year + self.UMA_UNIDADE
         elif self.periodicidade == ANO:
-            ano_inicial = data_inicio_periodo.year + 1
+            ano_inicial = data_inicio_periodo.year + self.UMA_UNIDADE
         elif self.periodicidade == BIENIO:
-            ano_inicial = data_inicio_periodo.year + 2
+            ano_inicial = data_inicio_periodo.year + 2*self.UMA_UNIDADE
         elif self.periodicidade == QUADRIENIO:
-            ano_inicial = data_inicio_periodo.year + 4
+            ano_inicial = data_inicio_periodo.year + 4*self.UMA_UNIDADE
 
         return ano_inicial
 
     def _data_inicio_prox_periodo(self, data_inicio_periodo):
         # TODO Fazer testes
 
-        dia_inicial = 1
         mes_inicial = self._definir_mes_inicial(data_inicio_periodo)
         ano_inicial = self._definir_ano_inicial(data_inicio_periodo)
 
         inicio_prox_periodo = datetime.date(
-            ano_inicial, mes_inicial, dia_inicial
+            ano_inicial, mes_inicial, self.DIA_INICIAL
         )
         return inicio_prox_periodo
 
