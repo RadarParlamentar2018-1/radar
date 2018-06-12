@@ -131,9 +131,8 @@ class PeriodosRetriever:
         return [p for p in periodos_candidatos
                 if p.quantidade_votacoes >= self.numero_minimo_de_votacoes]
 
-    def _inicio_primeiro_periodo(self):
-        # TODO extrair e fazer teste de unidade só pra esse método
-        # mês
+    def _definir_mes_inicial_primeiro_periodo(self):
+
         if self.periodicidade == MES:
             mes_inicial = self.data_da_primeira_votacao.month
         elif self.periodicidade in [ANO, BIENIO, QUADRIENIO]:
@@ -143,11 +142,15 @@ class PeriodosRetriever:
                 self.data_da_primeira_votacao.year,
                 self.PRIMEIRO_MES_SEGUNDO_SEMESTRE,
                 self.DIA_INICIAL)
-            if (self.data_da_primeira_votacao < primeiro_de_julho):
+            if self.data_da_primeira_votacao < primeiro_de_julho:
                 mes_inicial = self.MENOR_MES_POSSIVEL
             else:
                 mes_inicial = self.PRIMEIRO_MES_SEGUNDO_SEMESTRE
-        # ano
+
+        return mes_inicial
+
+    def _definir_ano_inicial_primeiro_periodo(self):
+
         mandatos_lists = MandatoLists()
         esfera = self.casa_legislativa.esfera
         mandatos = mandatos_lists.get_mandatos(
@@ -157,11 +160,22 @@ class PeriodosRetriever:
                 mandatos[indice] < self.data_da_primeira_votacao:
             ano_inicial = mandatos[indice].year
             indice += 1
+
+        return ano_inicial
+
+    def _inicio_primeiro_periodo(self):
+        # TODO Fazer teste de unidade só pra esse método
+
+        mes_inicial = self._definir_mes_inicial_primeiro_periodo()
+        ano_inicial = self._definir_ano_inicial_primeiro_periodo()
+
         inicio_primeiro_periodo = datetime.date(
             ano_inicial, mes_inicial, self.DIA_INICIAL)
+
         return inicio_primeiro_periodo
 
-    def _definir_mes_inicial(self, data_inicio_periodo):
+    def _definir_mes_inicial_proximo_periodo(self, data_inicio_periodo):
+
         if self.periodicidade == MES:
             mes_inicial = data_inicio_periodo.month + self.UMA_UNIDADE
             if mes_inicial == self.MENOR_MES_INVALIDO:
@@ -177,7 +191,7 @@ class PeriodosRetriever:
 
         return mes_inicial
 
-    def _definir_ano_inicial(self, data_inicio_periodo):
+    def _definir_ano_inicial_proximo_periodo(self, data_inicio_periodo):
 
         if self.periodicidade == MES:
             if data_inicio_periodo.month < self.MAIOR_MES_POSSIVEL:
@@ -201,12 +215,17 @@ class PeriodosRetriever:
     def _data_inicio_prox_periodo(self, data_inicio_periodo):
         # TODO Fazer testes
 
-        mes_inicial = self._definir_mes_inicial(data_inicio_periodo)
-        ano_inicial = self._definir_ano_inicial(data_inicio_periodo)
+        mes_inicial = self._definir_mes_inicial_proximo_periodo(
+            data_inicio_periodo
+        )
+        ano_inicial = self._definir_ano_inicial_proximo_periodo(
+            data_inicio_periodo
+        )
 
         inicio_prox_periodo = datetime.date(
             ano_inicial, mes_inicial, self.DIA_INICIAL
         )
+
         return inicio_prox_periodo
 
 
