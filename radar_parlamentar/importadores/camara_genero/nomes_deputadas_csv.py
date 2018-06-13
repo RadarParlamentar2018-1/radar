@@ -3,27 +3,40 @@
 from os import listdir
 from xml.dom.minidom import parseString
 
+DIRETORIO = "bios"
+ARQUIVO_SAIDA = "saida.csv"
 
-arqs = listdir("bios")
-saida = open("saida.csv", "w")
+TAGS = {
+        'nome_txt': 'TXTNOME',
+        'data': 'DATA_RECORD',
+        'mandato': 'MANDATOSCD'
+}
 
+GENERO = {
+            'masculino': 'M',
+            'feminino': 'F'
+}
+
+arqs = listdir(DIRETORIO)
+saida = open(ARQUIVO_SAIDA, "w")
 cont = 0
+
 for arq in arqs:
-        ponteiro = open("bios/" + arq)
+        ponteiro = open(DIRETORIO+"/"+ arq)
         data = ponteiro.read()
         dom = parseString(data)
-        records = dom.getElementsByTagName('DATA_RECORD')
+        records = dom.getElementsByTagName(TAGS['data'])
 
         for record in records:
-            dep = record.getElementsByTagName('MANDATOSCD')[0].firstChild.data
+            dep = record.getElementsByTagName(TAGS['mandato'])[0].firstChild.data
             if dep.find("Deputada") != -1:
-                genero = "F"
+                genero = GENERO['feminino']
                 cont += 1
             else:
-                genero = "M"
-            nome = record.getElementsByTagName('TXTNOME')[0].firstChild.data
+                genero = GENERO['masculino']
+            nome = record.getElementsByTagName(TAGS['nome_txt'])[0].firstChild.data
             legis = record.getElementsByTagName(
-                'MANDATOSCD')[0].firstChild.data
+                TAGS['mandato'])[0].firstChild.data
             legis = legis.split(";")
             saida_legis = ""
             for leg in legis:
