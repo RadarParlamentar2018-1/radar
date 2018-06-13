@@ -122,20 +122,17 @@ class ImportadorVotacoesSenado:
                      'AP', 'LA', 'LAP', 'LC', 'LG', 'LS', 'NA']
 
         # XML não tá em UTF-8, acho q vai dar probema nessas comparações!
-        if voto == 'Não':
-            return models.NAO
-        elif voto == 'Sim':
-            return models.SIM
-        elif voto == 'NCom':
-            return models.AUSENTE
+        voto_dict = {
+            'Não': models.NAO, 'Sim': models.SIM,
+            'NCom': models.AUSENTE, 'Abstenção': models.ABSTENCAO,
+            'P-OD': models.ABSTENCAO
+        }
+        if voto in voto_dict:
+            return voto_dict.get(voto)
         elif voto in DESCULPAS:
             return models.AUSENTE
-        elif voto == 'Abstenção':
-            return models.ABSTENCAO
-        elif voto == 'P-OD':  # obstrução
-            return models.ABSTENCAO
-        else:
-            return models.ABSTENCAO
+            
+        return models.ABSTENCAO
 
     def _find_partido(self, nome_partido):
         nome_partido = nome_partido.strip()
