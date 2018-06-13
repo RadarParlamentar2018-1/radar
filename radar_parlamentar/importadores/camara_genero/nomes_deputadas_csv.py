@@ -17,41 +17,58 @@ GENERO = {
             'feminino': 'F'
 }
 
-arqs = listdir(DIRETORIO)
-saida = open(ARQUIVO_SAIDA, "w")
-cont = 0
+def main():
+    arquivos = listdir(DIRETORIO)
+    saida = open(ARQUIVO_SAIDA, "w")
+    numero_deputadas = 0
 
-for arq in arqs:
-        ponteiro = open(DIRETORIO+"/"+ arq)
-        data = ponteiro.read()
-        dom = parseString(data)
-        records = dom.getElementsByTagName(TAGS['data'])
+    for arquivo in arquivos:
+            ponteiro = open(DIRETORIO+"/"+ arquivo)
+            data = ponteiro.read()
+            dom = parseString(data)
+            records = dom.getElementsByTagName(TAGS['data'])
+            copiar_dados_deputados(records)
 
-        for record in records:
-            dep = record.getElementsByTagName(TAGS['mandato'])[0].firstChild.data
-            if dep.find("Deputada") != -1:
-                genero = GENERO['feminino']
-                cont += 1
-            else:
-                genero = GENERO['masculino']
-            nome = record.getElementsByTagName(TAGS['nome_txt'])[0].firstChild.data
-            legis = record.getElementsByTagName(
-                TAGS['mandato'])[0].firstChild.data
-            legis = legis.split(";")
-            saida_legis = ""
-            for leg in legis:
-                dados = leg.split(",")
-                ano = dados[1]
-                saida_legis += "%s/" % ano
-                try:
-                    estado = dados[2]
-                    saida_legis += "%s/" % estado
-                    partido = dados[3].partition(".")[0]
-                    saida_legis += "%s/" % partido
-                    saida_legis += " , "
-                except:
-                    print(dados)
-                    saida_legis += " , "
-            saida.write('%s|%s|%s\n' % (nome, genero, saida_legis))
+def copiar_dados_deputados():
+    for record in records:
+        informacoes = obter_informacoes_deputado(record)
+        #conta número de deputadas
+        if informacoes['genero'] == GENERO['feminino']:
+            numero_deputadas += 1
+        escrever_saida(informacoes['nome'], informacoes['genero'], informacoes['legis'])
+    print(numero_deputadas)
 
-print(cont)
+def obter_informacoes_deputado(records):
+        deputado = record.getElementsByTagName(TAGS['mandato'])[0].firstChild.data
+        genero = obter_genero(deputado)
+        nome = record.getElementsByTagName(TAGS['nome_txt'])[0].firstChild.data
+        legis = record.getElementsByTagName(TAGS['mandato'])[0].firstChild.data
+        legis = legis.split(";")
+
+        informacoes = {'nome': nome, 'genero': genero, 'legis': legis}
+        return informacoes
+
+def escrever_saida(nome, genero, legis):
+    for leg in legis:
+        saida_legis = ""
+        dados = leg.split(",")
+        ano = dados[1]
+        saida_legis += "%s/" % ano
+        try:
+            estado = dados[2]
+            saida_legis += "%s/" % estado
+            partido = dados[3].partition(".")[0]
+            saida_legis += "%s/" % partido
+            saida_legis += " , "
+        except:
+            print(dados)
+            saida_legis += " , "
+    saida.write('%s|%s|%s\n' % (nome, genero, saida_legis))
+
+def obter_genero(deputado):
+    if deputado.find("Deputada") != -1:
+        genero = GENERO['feminino']
+    else:
+        genero = GENERO['masculino']
+
+main()
