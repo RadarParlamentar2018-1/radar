@@ -13,6 +13,10 @@ generos = {}
 historia = {}
 
 cont = 0
+
+SEXO_FEMININO = "F"
+SEXO_MASCULINO = "M"
+
 for arq in arqs:
     if arq[0] != ".":
         ponteiro = open("bios/" + arq)
@@ -23,10 +27,10 @@ for arq in arqs:
         for record in records:
             dep = record.getElementsByTagName('MANDATOSCD')[0].firstChild.data
             if dep.find("Deputada") != -1:
-                genero = "F"
+                genero = SEXO_FEMININO
                 cont += 1
             else:
-                genero = "M"
+                genero = SEXO_MASCULINO
             nome = record.getElementsByTagName('TXTNOME')[0].firstChild.data
             legis_anos = record.getElementsByTagName(
                 'LEGISLATURAS')[0].firstChild.data
@@ -60,7 +64,7 @@ for i in ordenada:
     total = len(historia[i])
     for pessoa in historia[i]:
         gen = generos[pessoa]
-        if gen == "F":
+        if gen == SEXO_FEMININO:
             femi += 1
         else:
             masc += 1
