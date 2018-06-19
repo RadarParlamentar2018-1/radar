@@ -70,6 +70,22 @@ class Url(object):
         except urllib.error.HTTPError:
             logger.error("%s ao acessar %s" % (error, url))
         return text
+    
+    def montar_url(self, base_url, url_params, **kwargs):
+        built_url = base_url
+
+        for par in list(kwargs.keys()):
+            if isinstance(kwargs[par], str):
+                kwargs[par] = kwargs[par].lower()
+        for par in url_params:
+            if par in list(kwargs.keys()):
+                built_url += str(par) + "=" + str(kwargs[par]) + "&"
+            else:
+                built_url += str(par) + "=&"
+
+        built_url = built_url.rstrip("&")
+        return built_url
+
 
 
 class Camaraws:
@@ -87,21 +103,6 @@ class Camaraws:
     def __init__(self, url=Url()):
         self.url = url
 
-    def _montar_url_consulta_camara(self, base_url, url_params, **kwargs):
-        built_url = base_url
-
-        for par in list(kwargs.keys()):
-            if isinstance(kwargs[par], str):
-                kwargs[par] = kwargs[par].lower()
-        for par in url_params:
-            if par in list(kwargs.keys()):
-                built_url += str(par) + "=" + str(kwargs[par]) + "&"
-            else:
-                built_url += str(par) + "=&"
-
-        built_url = built_url.rstrip("&")
-        return built_url
-
     def obter_proposicao_por_id(self, id_prop):
         """Obtém detalhes de uma proposição
 
@@ -118,7 +119,7 @@ class Camaraws:
         """
         parametros_de_consulta = ["idprop"]
         args = {'idprop': id_prop}
-        url = self._montar_url_consulta_camara(
+        url = self.url.montar_url(
             Camaraws.URL_PROPOSICAO, parametros_de_consulta, **args)
         tree = self.url.toXml(url)
         if tree is None or tree.tag == 'erro':
@@ -143,7 +144,7 @@ class Camaraws:
         args = {'tipo': sigla, 'numero': num, 'ano': ano}
         if kwargs:
             args.update(kwargs)
-        url = self._montar_url_consulta_camara(
+        url = self.url.montar_url(
             Camaraws.URL_VOTACOES, parametros_de_consulta, **args)
         tree = self.url.toXml(url)
         if tree is None or tree.tag == 'erro':
@@ -166,7 +167,7 @@ class Camaraws:
 
         parametros_de_consulta = ["ano", "tipo"]
         args = {'ano': ano, 'tipo': ' '}
-        url = self._montar_url_consulta_camara(
+        url = self.url.montar_url(
             Camaraws.URL_PLENARIO, parametros_de_consulta, **args)
         tree = self.url.toXml(url)
         if tree is None or tree.tag == 'erro':
@@ -198,7 +199,7 @@ class Camaraws:
         args = {'sigla': sigla, 'ano': ano}
         if kwargs:
             args.update(kwargs)
-        url = self._montar_url_consulta_camara(
+        url = self.url.montar_url(
             Camaraws.URL_LISTAR_PROPOSICOES, parametros_de_consulta, **args)
         tree = self.url.toXml(url)
         if tree is None or tree.tag == 'erro':

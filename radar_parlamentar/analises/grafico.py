@@ -247,11 +247,12 @@ class JsonAnaliseGenerator:
 
     def _dict_parlamentar(self, parlamentar):
         dict_parlamentar = self._init_dict_parlamentar(parlamentar)
-        _adicionar_coordenadas(dict_parlamentar)
-
+        self._adicionar_coordenadas(dict_parlamentar)
+        
         return dict_parlamentar
 
     def _adicionar_coordenadas(self, dict_parlamentar):
+        leg_id = dict_parlamentar.get('id')
         for ap in self.analise_temporal.analises_periodo:
             cache_coords_key = str(ap.periodo)
             coordenadas = self.parlamentaresScaler.scale(
