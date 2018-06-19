@@ -95,20 +95,23 @@ class ExportadorCSV(object):
     def transform_data(self):
         self.csv_rows.append(LABELS)
         for votacao in self.votacoes:
-            votos = votacao.votos()
-            for voto in votos:
-                parlamentar = voto.parlamentar
-                partido = parlamentar.partido
-                csv_row = []
-                csv_row.append(votacao.proposicao.nome())
-                csv_row.append(votacao.id)
-                csv_row.append(parlamentar.id)
-                csv_row.append(parlamentar.nome.encode('UTF-8'))
-                csv_row.append(partido.nome)
-                csv_row.append(parlamentar.localidade)
-                csv_row.append(REGIAO_POR_UF[parlamentar.localidade])
-                csv_row.append(voto.opcao)
-                self.csv_rows.append(csv_row)
+            self.append_csv_rows(votacao)
+
+    def append_csv_rows(self, votacao):
+        votos = votacao.votos()
+        for voto in votos:
+            parlamentar = voto.parlamentar
+            partido = parlamentar.partido
+            csv_row = []
+            csv_row.append(votacao.proposicao.nome())
+            csv_row.append(votacao.id)
+            csv_row.append(parlamentar.id)
+            csv_row.append(parlamentar.nome.encode('UTF-8'))
+            csv_row.append(partido.nome)
+            csv_row.append(parlamentar.localidade)
+            csv_row.append(REGIAO_POR_UF[parlamentar.localidade])
+            csv_row.append(voto.opcao)
+            self.csv_rows.append(csv_row)
 
     def write_csv(self):
         filepath = os.path.join(MODULE_DIR, 'saida', CSV_FILE)

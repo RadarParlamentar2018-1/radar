@@ -43,8 +43,9 @@ LABELS = [ROLLCALL, VOTER_ID, NAME, PARTY, COALITION, VOTE]
 
 CSV_FILE = 'votes.csv'
 
+import exportadores.exportador_csv as exportador_csv
 
-class ExportadorCSV:
+class ExportadorCSVR(exportador_csv.ExportadorCSV):
 
     def __init__(self, nome_curto_casa_legislativa, data_ini, data_fim):
         self.nome_curto = nome_curto_casa_legislativa
@@ -57,7 +58,7 @@ class ExportadorCSV:
         self.retrieve_votacoes()
         self.transform_data()
         self.write_csv()
-    
+
     def _ini_is_none(self, casa):
         if self.fim is None:
             self.votacoes = models.Votacao.objects.filter(
@@ -66,7 +67,7 @@ class ExportadorCSV:
             self.votacoes = models.Votacao.objects.filter(
                 proposicao__casa_legislativa=casa
             ).filter(data__lte=self.fim).order_by('data')
-    
+
     def _ini_is_not_none(self, casa):
         if self.fim is None:
             self.votacoes = models.Votacao.objects.filter(
@@ -76,7 +77,7 @@ class ExportadorCSV:
             self.votacoes = models.Votacao.objects.filter(
                 proposicao__casa_legislativa=casa
             ).filter(data__gte=self.ini, data__lte=self.fim).order_by('data')
-         
+
 
     def retrieve_votacoes(self):
         try:
@@ -88,26 +89,23 @@ class ExportadorCSV:
         else:
             self._ini_is_not_none(casa)
 
-
-    def transform_data(self):
-        self.csv_rows.append(LABELS)
-        for votacao in self.votacoes:
-            votos = votacao.votos()
-            for voto in votos:
-                parlamentar = voto.parlamentar
-                partido = parlamentar.partido
-                csv_row = []
-                csv_row.append(votacao.id)
-                csv_row.append(parlamentar.id)
-                csv_row.append(parlamentar.nome.encode('UTF-8'))
-                csv_row.append(partido.nome)
-                csv_row.append(self.coalition(partido.nome))
-                try:
-                    csv_row.append(self.voto(voto.opcao))
-                    self.csv_rows.append(csv_row)
-                except:
-                    print('Ignorando voto {}'.format(voto.opcao))
-                    logger.info("Ignorando voto: %s" % voto.opcao)
+    def append_csv_rows(self, votacao):
+        votos = votacao.votos()
+        for voto in votos:
+            parlamentar = voto.parlamentar
+            partido = parlamentar.partido
+            csv_row = []
+            csv_row.append(votacao.id)
+            csv_row.append(parlamentar.id)
+            csv_row.append(parlamentar.nome.encode('UTF-8'))
+            csv_row.append(partido.nome)
+            csv_row.append(self.coalition(partido.nome))
+            try:
+                csv_row.append(self.voto(voto.opcao))
+                self.csv_rows.append(csv_row)
+            except:
+                print('Ignorando voto {}'.format(voto.opcao))
+                logger.info("Ignorando voto: %s" % voto.opcao)
 
     def coalition(self, nome_partido):
         return '1' if nome_partido in COALITION_PARTIES else '0'
@@ -126,15 +124,8 @@ class ExportadorCSV:
         else:
             raise ValueError()
 
-    def write_csv(self):
-        filepath = os.path.join(MODULE_DIR, 'saida', CSV_FILE)
-        with open(filepath, 'w') as f:
-            writer = csv.writer(f, delimiter=',')
-            writer.writerows(self.csv_rows)
-
-
 def main():
     data_ini = parse_datetime('2007-01-01 0:0:0')
     data_fim = parse_datetime('2011-01-01 0:0:0')
-    exportador = ExportadorCSV('cdep', data_ini, data_fim)
+    exportador = ExportadorCSVR('cdep', data_ini, data_fim)
     exportador.exportar_csv()
