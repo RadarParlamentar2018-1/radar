@@ -7,6 +7,15 @@ import logging
 MODULE_DIR = os.path.abspath(os.path.dirname(__file__))
 logger = logging.getLogger("radar")
 
+class AcessoXMLChefesExecutivos(object):
+    
+    def abrir_xml(self, xml_file):
+        xml_chefes = os.path.join(MODULE_DIR, xml_file)
+        file = bz2.open(xml_chefes, mode='rt')
+        xml = file.read()
+        file.close()
+        return etree.fromstring(xml)    
+
 
 class ImportadorChefesExecutivos:
 
@@ -16,18 +25,13 @@ class ImportadorChefesExecutivos:
         self.tag_cargo = tag_cargo
         self.tag_titulo = tag_titulo
         self.xml_file = xml_file
+        self.xml = AcessoXMLChefesExecutivos()
+        
 
     def importar_chefes(self):
-        tree = self.abrir_xml()
+        tree = self.xml.abrir_xml(self.xml_file)
         presidentes_tree = tree.find(self.tag_cargo)
         self.presidente_from_tree(presidentes_tree)
-
-    def abrir_xml(self):
-        xml_chefes = os.path.join(MODULE_DIR, self.xml_file)
-        file = bz2.open(xml_chefes, mode='rt')
-        xml = file.read()
-        file.close()
-        return etree.fromstring(xml)
 
     def presidente_from_tree(self, presidentes_tree):
         for presidente in presidentes_tree.getchildren():
