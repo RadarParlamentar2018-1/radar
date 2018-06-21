@@ -71,7 +71,7 @@ class ImportadorCMSPCase(TestCase):
 
     def setUp(self):
         casa = GeradorCasaLegislativa().gerar_cmsp()
-        importer = ImportadorCMSP(casa)
+        importer = ImportadorCMSP()
         importer.importar_de(XML_TEST)
 
     def test_proposicoes_importadas(self):
@@ -237,7 +237,7 @@ class IdempotenciaCMSPCase(TestCase):
     def test_idempotencia_cmsp(self):
 
         casa = GeradorCasaLegislativa().gerar_cmsp()
-        importer = ImportadorCMSP(casa)
+        importer = ImportadorCMSP()
 
         # importa a primeira vez
         votacoes = importer.importar_de(XML_TEST)

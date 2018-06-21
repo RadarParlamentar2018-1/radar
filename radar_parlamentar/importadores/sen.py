@@ -22,12 +22,12 @@ Classes:
     ImportadorVotacoesSenado
 """
 
-
 from datetime import date
 from modelagem import models
 from requests.exceptions import RequestException
 from django.core.exceptions import ObjectDoesNotExist
 from .chefes_executivos import ImportadorChefesExecutivos
+from .importador_casa_legislativa import ImportadorCasaLegislativa
 from pathlib import Path
 import bz2
 import re
@@ -72,7 +72,7 @@ class CasaLegislativaGerador:
         return sen
 
 
-class ImportadorVotacoesSenado:
+class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
 
     """Salva os dados dos arquivos XML do senado no banco de dados"""
 
@@ -131,7 +131,7 @@ class ImportadorVotacoesSenado:
             return voto_dict.get(voto)
         elif voto in DESCULPAS:
             return models.AUSENTE
-            
+
         return models.ABSTENCAO
 
     def _find_partido(self, nome_partido):
@@ -311,7 +311,7 @@ class ImportadorVotacoesSenado:
     def _check_success_state_and_votacao(self, sucess_status, votacao, votacoes):
         if sucess_status is True and votacao is not None:
             votacoes.append(votacao)
-    
+
     def _append_votacao_if_code_exists_in_model(self, votacao_tree):
         votacoes = []
         # caso o codigo já exista na model
@@ -325,7 +325,7 @@ class ImportadorVotacoesSenado:
             votacao = sucess_status
             self._check_success_state_and_votacao(sucess_status, votacao, votacoes)
         return votacoes
-    
+
     def _check_is_not_votacao_or_secreta(self, votacao_tree, votacao_secreta):
         votacoes = []
         if votacao_tree.tag == 'Votacao' and votacao_secreta == 'N':
@@ -382,6 +382,23 @@ class ImportadorVotacoesSenado:
             except RequestException as error:
                 logger.error("%s ao acessar %s" % (error, xml_url))
 
+    def main(self):
+        logger.info('IMPORTANDO DADOS DO SENADO')
+        geradorCasaLeg = CasaLegislativaGerador()
+        geradorCasaLeg.gera_senado()
+        logger.info('IMPORTANDO CHEFES EXECUTIVOS DO SENADO')
+        importer_chefe = ImportadorChefesExecutivos(
+            NOME_CURTO, 'Presidentes', 'Presidente', XML_FILE)
+        importer_chefe.importar_chefes()
+        logger.info('IMPORTANDO VOTAÇÕES DO SENADO')
+        self.importar_votacoes()
+        logger.info('PROCESSAMENTO PÓS-IMPORTAÇÃO')
+        posImportacao = PosImportacao()
+        posImportacao.processar()
+        logger.info('IMPORTANDO INDICES DO SENADO')
+        import importadores.sen_indexacao as indexacao_senado
+        indexacao_senado.indexar_proposicoes()
+
 
 class PosImportacao:
 
@@ -406,22 +423,3 @@ class PosImportacao:
             suplicy_sem_partido.delete()
         except ObjectDoesNotExist:
             logger.warn('Eduardo Suplicy sem partido não existe.')
-
-
-def main():
-    logger.info('IMPORTANDO DADOS DO SENADO')
-    geradorCasaLeg = CasaLegislativaGerador()
-    geradorCasaLeg.gera_senado()
-    logger.info('IMPORTANDO CHEFES EXECUTIVOS DO SENADO')
-    importer_chefe = ImportadorChefesExecutivos(
-        NOME_CURTO, 'Presidentes', 'Presidente', XML_FILE)
-    importer_chefe.importar_chefes()
-    logger.info('IMPORTANDO VOTAÇÕES DO SENADO')
-    importer = ImportadorVotacoesSenado()
-    importer.importar_votacoes()
-    logger.info('PROCESSAMENTO PÓS-IMPORTAÇÃO')
-    posImportacao = PosImportacao()
-    posImportacao.processar()
-    logger.info('IMPORTANDO INDICES DO SENADO')
-    import importadores.sen_indexacao as indexacao_senado
-    indexacao_senado.indexar_proposicoes()

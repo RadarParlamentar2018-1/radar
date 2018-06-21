@@ -17,11 +17,11 @@
 
 """módulo cmsp (Câmara Municipal de São Paulo)"""
 
-
 from django.utils.dateparse import parse_datetime
 from modelagem import models
 from requests.exceptions import RequestException
 from .chefes_executivos import ImportadorChefesExecutivos
+from .importador_casa_legislativa import ImportadorCasaLegislativa
 import re
 import sys
 import os
@@ -283,14 +283,13 @@ class XmlCMSP:
         sys.stdout.flush()
 
 
-class ImportadorCMSP:
+class ImportadorCMSP(ImportadorCasaLegislativa):
 
     """Salva os dados dos arquivos XML da cmsp no banco de dados"""
 
-    def __init__(self, cmsp, verbose=False):
+    def __init__(self, verbose=False):
         """verbose (booleano) -- ativa/desativa prints na tela"""
         self.verbose = verbose
-        self.xml_cmsp = XmlCMSP(cmsp, verbose)
         self.proposicoes = {}
         self.votacoes = []
         self.acessoXmlCmsp = AcessoXmlCmsp()
@@ -318,17 +317,21 @@ class ImportadorCMSP:
 
     def analisar_xml(self, proposicoes, votacoes, tree):
         for sessao_tree in tree.findall('Sessao'):
-            self.xml_cmsp.sessao_from_tree(proposicoes, votacoes, sessao_tree)
+            xml_cmsp = self.gerar_xml_cmsp()
+            xml_cmsp.sessao_from_tree(proposicoes, votacoes, sessao_tree)
 
+    def gerar_xml_cmsp(self):
+        gerador_casa = GeradorCasaLegislativa()
+        cmsp = gerador_casa.gerar_cmsp()
+        xml_cmsp = XmlCMSP(cmsp, self.verbose)
+        return xml_cmsp
 
-def main():
-    logger.info('IMPORTANDO DADOS DA CAMARA MUNICIPAL DE SAO PAULO (CMSP)')
-    gerador_casa = GeradorCasaLegislativa()
-    cmsp = gerador_casa.gerar_cmsp()
-    importer_chefe = ImportadorChefesExecutivos(
-        NOME_CURTO, 'PrefeitosSP', 'PrefeitoSP', XML_FILE)
-    importer_chefe.importar_chefes()
-    importer = ImportadorCMSP(cmsp)
-    importer.importar()
-    logger.info('Importacao dos dados da \
-                Camara Municipal de Sao Paulo (CMSP) terminada')
+    def main(self):
+        logger.info('IMPORTANDO DADOS DA CAMARA MUNICIPAL DE SAO PAULO (CMSP)')
+        importer_chefe = ImportadorChefesExecutivos(
+            NOME_CURTO, 'PrefeitosSP', 'PrefeitoSP', XML_FILE)
+        importer_chefe.importar_chefes()
+        #importer = ImportadorCMSP(cmsp)
+        self.importar()
+        logger.info('Importacao dos dados da \
+                    Camara Municipal de Sao Paulo (CMSP) terminada')

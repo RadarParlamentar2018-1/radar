@@ -22,6 +22,7 @@
 from django.utils.dateparse import parse_date
 from django.core.exceptions import ObjectDoesNotExist
 from .chefes_executivos import ImportadorChefesExecutivos
+from .importador_casa_legislativa import ImportadorCasaLegislativa
 from modelagem import models
 from datetime import datetime
 import re
@@ -70,7 +71,7 @@ class Url(object):
         except urllib.error.HTTPError:
             logger.error("%s ao acessar %s" % (error, url))
         return text
-    
+
     def montar_url(self, base_url, url_params, **kwargs):
         built_url = base_url
 
@@ -278,7 +279,7 @@ def _converte_data(data_str):
         return None
 
 
-class ImportadorCamara:
+class ImportadorCamara(ImportadorCasaLegislativa):
     """Salva os dados dos web services da
     Câmara dos Deputados no banco de dados"""
 
@@ -519,6 +520,22 @@ class ImportadorCamara:
             partido = models.Partido.get_sem_partido()
         return partido
 
+    def main(self):
+        logger.info('IMPORTANDO DADOS DA CAMARA DOS DEPUTADOS')
+        prop_finder = ProposicoesFinder()
+        dic_votadas = prop_finder.find_props_disponiveis()
+        self.importar(dic_votadas)
+        pos_importacao = PosImportacao()
+        pos_importacao.processar()
+        logger.info('IMPORTANDO CHEFES EXECUTIVOS DA CAMARA DOS DEPUTADOS')
+        importer_chefe = ImportadorChefesExecutivos(
+            NOME_CURTO, 'Presidentes', 'Presidente', XML_FILE)
+        importer_chefe.importar_chefes()
+
+        from importadores import cdep_genero
+        cdep_genero.main()
+        logger.info('IMPORTACAO DE DADOS DA CAMARA DOS DEPUTADOS FINALIZADA')
+
 
 class PosImportacao:
 
@@ -583,21 +600,3 @@ def lista_proposicoes_de_mulheres():
 
     return {'proposicoes': proposicoes, 'contagem': contagem_proposicoes,
             'percentuais_fem': percentuais_fem}
-
-
-def main():
-    logger.info('IMPORTANDO DADOS DA CAMARA DOS DEPUTADOS')
-    prop_finder = ProposicoesFinder()
-    dic_votadas = prop_finder.find_props_disponiveis()
-    importador = ImportadorCamara()
-    importador.importar(dic_votadas)
-    pos_importacao = PosImportacao()
-    pos_importacao.processar()
-    logger.info('IMPORTANDO CHEFES EXECUTIVOS DA CAMARA DOS DEPUTADOS')
-    importer_chefe = ImportadorChefesExecutivos(
-        NOME_CURTO, 'Presidentes', 'Presidente', XML_FILE)
-    importer_chefe.importar_chefes()
-
-    from importadores import cdep_genero
-    cdep_genero.main()
-    logger.info('IMPORTACAO DE DADOS DA CAMARA DOS DEPUTADOS FINALIZADA')

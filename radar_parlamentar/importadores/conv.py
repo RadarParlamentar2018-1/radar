@@ -22,8 +22,10 @@ Classes:
     Convenção Nacional Francesa
 """
 
+
 from __future__ import unicode_literals
 from django.utils.dateparse import parse_datetime
+from .importador_casa_legislativa import ImportadorCasaLegislativa
 from modelagem import models
 import logging
 
@@ -45,7 +47,7 @@ JACOBINOS = 'Jacobinos'
 MONARQUISTAS = 'Monarquistas'
 
 
-class ImportadorConvencao:
+class ImportadorConvencao(ImportadorCasaLegislativa):
 
     def _gera_casa_legislativa(self):
         conv = models.CasaLegislativa()
@@ -294,9 +296,6 @@ class ImportadorConvencao:
         self._gera_votacao9()
         self._gera_proposicao('10', 'Legalizacao da maconha')
 
-
-def main():
-
-    logger.info('IMPORTANDO DADOS DA CONVENÇÃO NACIONAL FRANCESA')
-    importer = ImportadorConvencao()
-    importer.importar()
+    def main(self):
+        logger.info('IMPORTANDO DADOS DA CONVENÇÃO NACIONAL FRANCESA')
+        self.importar()
