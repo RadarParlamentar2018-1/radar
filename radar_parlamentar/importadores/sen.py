@@ -49,8 +49,6 @@ PARTIDO_PT = 13
 SEM_PARTIDO = 0
 STATUS_SUCESSO = 200
 
-XML_FILE = 'dados/chefe_executivo/chefe_executivo_congresso.xml.bz2'
-
 ANO_MIN = 2003
 
 logger = logging.getLogger("radar")
@@ -72,6 +70,65 @@ class CasaLegislativaGerador:
         return sen
 
 
+class AcessoXmlSenado(object):
+    """
+    Classe responsável por proporcionar acesso às informações obtidas
+    através de XMLS disponibilizados pela API do Senado.
+    """
+
+    XML_FILE = 'dados/chefe_executivo/chefe_executivo_congresso.xml.bz2'
+
+    @staticmethod
+    def acessar_xml():
+        """Retorna uma lista com as urls dos arquivos XMLs disponíveis
+        na API do Senado"""
+        xmls = []
+        XML_URL = ("http://legis.senado.leg.br/dadosabertos/dados"
+                   "/ListaVotacoes{ano}.xml")
+        ano_atual = date.today().year
+        for ano in range(ANO_MIN, ano_atual+1):
+            xmls.append(XML_URL.format(ano=ano))
+        return xmls
+
+    @staticmethod
+    def pegar_proposicao_da_arvore(votacao_tree):
+
+        sigla = votacao_tree.find('SiglaMateria').text
+        numero = votacao_tree.find('NumeroMateria').text
+        ano = votacao_tree.find('AnoMateria').text
+        return '%s %s/%s' % (sigla, numero, ano)
+
+    @staticmethod
+    def pegar_codigo_votacao_da_arvore(votacao_tree):
+        codigo = votacao_tree.find('CodigoSessaoVotacao').text
+        return codigo
+
+
+class ManipuladorDadosSenado(object):
+    """
+    Classe responsável por prover métodos necessários para manipulação
+    de dados do importador de dados do Senado.
+    """
+
+    @staticmethod
+    def gerar_key_parlamentar(parlamentar):
+        return (parlamentar.nome,
+                parlamentar.partido.nome,
+                parlamentar.localidade)
+
+    @staticmethod
+    def converte_data(data_str):
+        """Converte string "aaaa-mm-dd para objeto datetime;
+        retona None se data_str é inválido"""
+        data_regex = '(\d{4})-(\d{2})-(\d{2})'
+        res = re.match(data_regex, data_str)
+        if res:
+            return date(int(res.group(1)), int(res.group(2)),
+                        int(res.group(3)))
+        else:
+            raise ValueError
+
+
 class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
 
     """Salva os dados dos arquivos XML do senado no banco de dados"""
@@ -80,6 +137,8 @@ class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
         self.senado = models.CasaLegislativa.objects.get(nome_curto=NOME_CURTO)
         self.parlamentares = self._init_parlamentares()
         self.proposicoes = self._init_proposicoes()
+        self.acesso_xml_senado = AcessoXmlSenado()
+        self.manipulador_dados_senado = ManipuladorDadosSenado()
 
     def _init_parlamentares(self):
         """retorna dicionário
@@ -87,13 +146,10 @@ class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
         parlamentares = {}
         for p in models.Parlamentar.objects.filter(
                 casa_legislativa=self.senado):
-            parlamentares[self._key(p)] = p
+            parlamentares[
+                self.manipulador_dados_senado.gerar_key_parlamentar(p)
+            ] = p
         return parlamentares
-
-    def _key(self, parlamentar):
-        return (parlamentar.nome,
-                parlamentar.partido.nome,
-                parlamentar.localidade)
 
     def _init_proposicoes(self):
         """retorna dicionário "sigla num/ano" -> Proposicao"""
@@ -102,17 +158,6 @@ class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
                 casa_legislativa=self.senado):
             proposicoes[p.nome()] = p
         return proposicoes
-
-    def _converte_data(self, data_str):
-        """Converte string "aaaa-mm-dd para objeto datetime;
-        retona None se data_str é inválido"""
-        DATA_REGEX = '(\d{4})-(\d{2})-(\d{2})'
-        res = re.match(DATA_REGEX, data_str)
-        if res:
-            return date(int(res.group(1)), int(res.group(2)),
-                        int(res.group(3)))
-        else:
-            raise ValueError
 
     def _voto_senado_to_model(self, voto):
         """Interpreta voto como tá no XML e responde em adequação a modelagem
@@ -196,13 +241,6 @@ class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
             votos.append(voto)
         return votos
 
-    def _nome_prop_from_tree(self, votacao_tree):
-
-        sigla = votacao_tree.find('SiglaMateria').text
-        numero = votacao_tree.find('NumeroMateria').text
-        ano = votacao_tree.find('AnoMateria').text
-        return '%s %s/%s' % (sigla, numero, ano)
-
     def _create_prop(self, votacao_tree):
         """Cria proposicao e salva no BD
            Retorna nova proposicao criada
@@ -217,7 +255,9 @@ class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
 
     def _proposicao_from_tree(self, votacao_tree):
 
-        prop_nome = self._nome_prop_from_tree(votacao_tree)
+        prop_nome = self.acesso_xml_senado.pegar_proposicao_da_arvore(
+            votacao_tree
+        )
         if prop_nome in self.proposicoes:
             prop = self.proposicoes[prop_nome]
         else:
@@ -225,20 +265,10 @@ class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
             self.proposicoes[prop_nome] = prop
         return prop
 
-    def _read_xml(self, xml_file):
-        """Salva no banco de dados do Django e retorna lista das votações"""
-
-        tree = None
-        with bz2.open(xml_file, mode='rt', encoding="iso-8859-1") as f:
-            tree = etree.fromstring(f.read())
-        return tree
-
-    def _find_the_votacao_code(self, votacao_tree):
-        codigo = votacao_tree.find('CodigoSessaoVotacao').text
-        return codigo
-
     def _code_exists_in_votacao_in_model(self, votacao_tree):
-        codigo = self._find_the_votacao_code(votacao_tree)
+        codigo = self.acesso_xml_senado.pegar_codigo_votacao_da_arvore(
+            votacao_tree
+        )
         votacoes_query = models.Votacao.objects.filter(id_vot=codigo)
         if votacoes_query:
             return True, votacoes_query
@@ -249,7 +279,9 @@ class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
         proposicao = self._proposicao_from_tree(votacao_tree)
         self.progresso()
         votacao = models.Votacao()
-        votacao.id_vot = self._find_the_votacao_code(votacao_tree)
+        votacao.id_vot = self.acesso_xml_senado.pegar_codigo_votacao_da_arvore(
+            votacao_tree
+        )
         # save só pra criar a chave primária e poder atribuir os votos
         votacao.save()
 
@@ -287,8 +319,9 @@ class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
           salvos caso ela não seja nula e tenha votos'''
         votacao.descricao = votacao_tree.find(
             'DescricaoVotacao').text
-        votacao.data = self._converte_data(
-            votacao_tree.find('DataSessao').text)
+        votacao.data = self.manipulador_dados_senado.converte_data(
+            votacao_tree.find('DataSessao').text
+        )
         votacao.save()
         return True, votacao
 
@@ -353,23 +386,12 @@ class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
         sys.stdout.write('x')
         sys.stdout.flush()
 
-    def _xml_file_names(self):
-        """Retorna uma lista com as urls dos arquivos XMLs disponíveis
-        na API do Senado"""
-        xmls = []
-        XML_URL = ("http://legis.senado.leg.br/dadosabertos/dados"
-                   "/ListaVotacoes{ano}.xml")
-        ano_atual = date.today().year
-        for ano in range(ANO_MIN, ano_atual+1):
-            xmls.append(XML_URL.format(ano=ano))
-        return xmls
-
     def importar_votacoes(self):
         """# Realiza a consulta a API do senado através de uma request e
         retorna os arquivos XMLS referentes as votações para serem importados
         pelo radar
          # facilita debug"""
-        list_xml = self._xml_file_names()
+        list_xml = self.acesso_xml_senado.acessar_xml()
         for xml_url in list_xml:
             try:
                 response = requests.get(xml_url)
@@ -388,7 +410,7 @@ class ImportadorVotacoesSenado(ImportadorCasaLegislativa):
         geradorCasaLeg.gera_senado()
         logger.info('IMPORTANDO CHEFES EXECUTIVOS DO SENADO')
         importer_chefe = ImportadorChefesExecutivos(
-            NOME_CURTO, 'Presidentes', 'Presidente', XML_FILE)
+            NOME_CURTO, 'Presidentes', 'Presidente', AcessoXmlSenado.XML_FILE)
         importer_chefe.importar_chefes()
         logger.info('IMPORTANDO VOTAÇÕES DO SENADO')
         self.importar_votacoes()
