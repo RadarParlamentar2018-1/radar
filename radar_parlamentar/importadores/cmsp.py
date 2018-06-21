@@ -84,6 +84,80 @@ class GeradorCasaLegislativa(object):
         cmsp.save()
         return cmsp
 
+class AcessoVotosCMSPTree:
+    def __init__(self, parlamentares, cmsp, verbose):
+        self.parlamentares = parlamentares
+        self.cmsp = cmsp
+        self.verbose = verbose
+
+    def get_votos(self, vot_tree, votacao):
+        """Extrai lista de votos do XML da votação e as salva no banco de dados
+
+        Argumentos:
+           vot_tree -- etree dos votos
+           votacao -- objeto do tipo Votacao
+        """
+        for ver_tree in vot_tree.getchildren():
+            if ver_tree.tag == 'Vereador':
+                vereador = self.vereador(ver_tree)
+                voto = models.Voto()
+                voto.parlamentar = vereador
+                voto.votacao = votacao
+                voto.opcao = self.voto_cmsp_to_model(ver_tree.get('Voto'))
+                if voto.opcao is not None and self.nao_eh_repetido(voto):
+                    voto.save()
+
+    def vereador(self, ver_tree):
+        nome_vereador = ver_tree.get('Nome')
+        partido = self.partido(ver_tree)
+        key = (nome_vereador, partido.nome)
+        if key in self.parlamentares:
+            vereador = self.parlamentares[key]
+        else:
+            id_parlamentar = ver_tree.get('IDParlamentar')
+            vereador = models.Parlamentar()
+            vereador.id_parlamentar = id_parlamentar
+            vereador.nome = nome_vereador
+            vereador.partido = partido
+            vereador.casa_legislativa = self.cmsp
+            vereador.save()
+            if self.verbose:
+                logger.info('Vereador %s salvo' % vereador)
+            self.parlamentares[key] = vereador
+        return vereador
+    
+    def partido(self, ver_tree):
+        nome_partido = ver_tree.get('Partido').strip()
+        partido = models.Partido.from_nome(nome_partido)
+        if partido is None:
+            logger.info('Nao achou o partido %s' % nome_partido)
+            partido = models.Partido.get_sem_partido()
+        return partido
+
+    def voto_cmsp_to_model(self, voto):
+        """Interpreta voto como tá no XML e responde em adequação a
+        modelagem em models.py"""
+
+        if voto == 'Não':
+            return models.NAO
+        elif voto == 'Sim':
+            return models.SIM
+        elif voto == 'Não votou':
+            return models.AUSENTE
+        elif voto == 'Abstenção':
+            return models.ABSTENCAO
+        else:
+            logger.info('tipo de voto (%s) nao mapeado!' % voto)
+            return models.ABSTENCAO
+
+    def nao_eh_repetido(self, voto):
+        """# Obs: se nos dados aparece que o mesmo parlamentar
+        #fez opções distintas na mesma votação,
+        # prevalece o primeiro registro."""
+        votos_iguais = models.Voto.objects.filter(votacao=voto.votacao,
+                                                  parlamentar=voto.parlamentar)
+        return len(votos_iguais) == 0
+
 
 class XmlCMSP:
 
@@ -91,6 +165,9 @@ class XmlCMSP:
         self.cmsp = cmsp
         self.parlamentares = self._init_parlamentares()
         self.verbose = verbose
+
+        self.acesso_votos = AcessoVotosCMSPTree(self.parlamentares, self.cmsp, self.verbose)
+
 
     def _init_parlamentares(self):
         """retorna dicionário (nome_parlamentar, nome_partido) ->\
@@ -136,72 +213,19 @@ class XmlCMSP:
             return None, None, None
 
     def voto_cmsp_to_model(self, voto):
-        """Interpreta voto como tá no XML e responde em adequação a
-        modelagem em models.py"""
-
-        if voto == 'Não':
-            return models.NAO
-        elif voto == 'Sim':
-            return models.SIM
-        elif voto == 'Não votou':
-            return models.AUSENTE
-        elif voto == 'Abstenção':
-            return models.ABSTENCAO
-        else:
-            logger.info('tipo de voto (%s) nao mapeado!' % voto)
-            return models.ABSTENCAO
+        return self.acesso_votos.voto_cmsp_to_model(voto)
 
     def partido(self, ver_tree):
-        nome_partido = ver_tree.get('Partido').strip()
-        partido = models.Partido.from_nome(nome_partido)
-        if partido is None:
-            logger.info('Nao achou o partido %s' % nome_partido)
-            partido = models.Partido.get_sem_partido()
-        return partido
+        return self.acesso_votos.partido(ver_tree)
 
     def vereador(self, ver_tree):
-        nome_vereador = ver_tree.get('Nome')
-        partido = self.partido(ver_tree)
-        key = (nome_vereador, partido.nome)
-        if key in self.parlamentares:
-            vereador = self.parlamentares[key]
-        else:
-            id_parlamentar = ver_tree.get('IDParlamentar')
-            vereador = models.Parlamentar()
-            vereador.id_parlamentar = id_parlamentar
-            vereador.nome = nome_vereador
-            vereador.partido = partido
-            vereador.casa_legislativa = self.cmsp
-            vereador.save()
-            if self.verbose:
-                logger.info('Vereador %s salvo' % vereador)
-            self.parlamentares[key] = vereador
-        return vereador
+        return self.acesso_votos.vereador(ver_tree)
 
     def votos_from_tree(self, vot_tree, votacao):
-        """Extrai lista de votos do XML da votação e as salva no banco de dados
-
-        Argumentos:
-           vot_tree -- etree dos votos
-           votacao -- objeto do tipo Votacao
-        """
-        for ver_tree in vot_tree.getchildren():
-            if ver_tree.tag == 'Vereador':
-                vereador = self.vereador(ver_tree)
-                voto = models.Voto()
-                voto.parlamentar = vereador
-                voto.votacao = votacao
-                voto.opcao = self.voto_cmsp_to_model(ver_tree.get('Voto'))
-                if voto.opcao is not None and self.nao_eh_repetido(voto):
-                    voto.save()
+        self.acesso_votos.get_votos(vot_tree, votacao)
 
     def nao_eh_repetido(self, voto):
-        """# Obs: se nos dados aparece que o mesmo parlamentar
-        #fez opções distintas na mesma votação,
-        # prevalece o primeiro registro."""
-        votos_iguais = models.Voto.objects.filter(votacao=voto.votacao,
-                                                  parlamentar=voto.parlamentar)
-        return len(votos_iguais) == 0
+        return self.acesso_votos.nao_eh_repetido(voto)
 
     def votacao_from_tree(self, proposicoes, votacoes, vot_tree):
         # se é votação nominal
