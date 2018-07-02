@@ -92,18 +92,17 @@ class ImportadorConvencao:
                 parlamentar.save()
                 self.parlamentares[partido.nome].append(parlamentar)
 
-    def _gera_proposicao(self, num, descricao, indexacao=None, ementa=None):
+    def _gera_proposicao(self, num, descricao, indexacao_ementa_dict=None):
         prop = models.Proposicao()
         prop.id_prop = num
         prop.sigla = 'PL'
         prop.numero = num
         prop.descricao = descricao
         prop.casa_legislativa = self.casa
-        if indexacao is not None and ementa is not None:
-            prop.indexacao = indexacao
-            prop.ementa = ementa
-        else:
-            prop.ementa = descricao
+        prop.ementa = descricao
+        if indexacao_ementa_dict is not None:
+            prop.indexacao = indexacao_ementa_dict.get("indexacao")
+            prop.ementa = indexacao_ementa_dict.get("ementa")
         prop.save()
         return prop
 
@@ -143,13 +142,13 @@ class ImportadorConvencao:
             if prop is not None:
                 valor_prop = valor.get("prop")
                 descricao = valor_prop.get("descricao_extra")
-                indexacao = valor_prop.get("indexacao")
-                ementa = valor_prop.get("ementa")
+                indexacao_ementa_dict = {
+                   "indexacao": valor_prop.get("indexacao"),
+                   "ementa":  valor_prop.get("ementa")}
                 prop = self._gera_proposicao(
                     numero_prop,
                     descricao,
-                    indexacao,
-                    ementa)
+                    indexacao_ementa_dict)
             else:
                 prop = self._gera_proposicao(numero_prop, descricao_prop)
             votacao = self._gera_votacao(
